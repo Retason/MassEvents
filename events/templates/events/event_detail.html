@@ -3,9 +3,22 @@
 {% block title %}{{ event.title }}{% endblock %}
 
 {% block content %}
+<div class="container">
     <h2>{{ event.title }}</h2>
-    <p><strong>Описание:</strong> {{ event.description }}</p>
+    <p>{{ event.description }}</p>
+
     <p><strong>Место:</strong> {{ event.location }}</p>
-    <p><strong>Дата:</strong> {{ event.start_time|date:"d.m.Y H:i" }} - {{ event.end_time|date:"d.m.Y H:i" }}</p>
+    <p><strong>Дата и время начала:</strong> {{ event.start_time|date:"d.m.Y H:i" }}</p>
+    <p><strong>Дата и время окончания:</strong> {{ event.end_time|date:"d.m.Y H:i" }}</p>
+
     <a href="{% url 'event-list' %}" class="btn btn-secondary">Назад</a>
+
+    {% if user == event.organizer %}
+        <a href="{% url 'event-edit' event.pk %}" class="btn btn-warning">Редактировать</a>
+        <form action="{% url 'event-delete' event.pk %}" method="post" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите удалить мероприятие?');">Удалить</button>
+        </form>
+    {% endif %}
+</div>
 {% endblock %}

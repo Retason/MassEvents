@@ -1,49 +1,53 @@
 {% extends 'events/base.html' %}
 {% load django_bootstrap5 %}
 
-{% block title %}Создать мероприятие{% endblock %}
+{% block title %}{% if is_edit %}Редактировать мероприятие{% else %}Создать мероприятие{% endif %}{% endblock %}
 
 {% block content %}
-    <h2>Создать мероприятие</h2>
+    <h2>{% if is_edit %}Редактировать мероприятие{% else %}Создать мероприятие{% endif %}</h2>
+
     <form method="post">
         {% csrf_token %}
 
         <div class="mb-3">
             <label for="title" class="form-label">Название</label>
-            <input type="text" class="form-control" id="title" name="title" required>
+            <input type="text" class="form-control" id="title" name="title" value="{{ form.title.value|default_if_none:'' }}" required>
         </div>
 
         <div class="mb-3">
             <label for="description" class="form-label">Описание</label>
-            <textarea class="form-control" id="description" name="description"></textarea>
+            <textarea class="form-control" id="description" name="description">{{ form.description.value|default_if_none:'' }}</textarea>
         </div>
 
         <div class="mb-3">
             <label for="location" class="form-label">Место</label>
-            <input type="text" class="form-control" id="location" name="location">
+            <input type="text" class="form-control" id="location" name="location" value="{{ form.location.value|default_if_none:'' }}">
         </div>
 
         <div class="mb-3">
-    <label for="start_time" class="form-label">Дата и время начала</label>
-    <div class="input-group" id="startTimePicker" data-td-target-input="nearest">
-        <input type="text" class="form-control" id="start_time" name="start_time" data-td-target="#startTimePicker">
-        <button class="btn btn-outline-secondary" type="button" id="startTimeButton" data-td-target="#startTimePicker" data-td-toggle="datetimepicker">
-            <i class="bi bi-calendar"></i>
-        </button>
-    </div>
-</div>
+            <label for="start_time" class="form-label">Дата и время начала</label>
+            <div class="input-group" id="startTimePicker" data-td-target-input="nearest">
+                <input type="text" class="form-control" id="start_time" name="start_time" data-td-target="#startTimePicker"
+                    value="{{ form.start_time.value|date:'d.m.Y, H:i' }}">
+                <button class="btn btn-outline-secondary" type="button" id="startTimeButton" data-td-target="#startTimePicker" data-td-toggle="datetimepicker">
+                    <i class="bi bi-calendar"></i>
+                </button>
+            </div>
+        </div>
 
-<div class="mb-3">
-    <label for="end_time" class="form-label">Дата и время окончания</label>
-    <div class="input-group" id="endTimePicker" data-td-target-input="nearest">
-        <input type="text" class="form-control" id="end_time" name="end_time" data-td-target="#endTimePicker">
-        <button class="btn btn-outline-secondary" type="button" id="endTimeButton" data-td-target="#endTimePicker" data-td-toggle="datetimepicker">
-            <i class="bi bi-calendar"></i>
-        </button>
-    </div>
-</div>
+        <div class="mb-3">
+            <label for="end_time" class="form-label">Дата и время окончания</label>
+            <div class="input-group" id="endTimePicker" data-td-target-input="nearest">
+                <input type="text" class="form-control" id="end_time" name="end_time" data-td-target="#endTimePicker"
+                    value="{{ form.end_time.value|date:'d.m.Y, H:i' }}">
+                <button class="btn btn-outline-secondary" type="button" id="endTimeButton" data-td-target="#endTimePicker" data-td-toggle="datetimepicker">
+                    <i class="bi bi-calendar"></i>
+                </button>
+            </div>
+        </div>
 
-        <button type="submit" class="btn btn-success">Сохранить</button>
+
+        <button type="submit" class="btn btn-success">{% if is_edit %}Сохранить изменения{% else %}Сохранить{% endif %}</button>
         <a href="{% url 'event-list' %}" class="btn btn-secondary">Отмена</a>
     </form>
 {% endblock %}
@@ -69,12 +73,12 @@
         console.log("Запуск Tempus Dominus...");
 
         window.startTimePicker = new tempusDominus.TempusDominus(startElement, {
-            localization: { locale: 'ru', format: 'yyyy-MM-dd HH:mm' },
+            localization: { locale: 'ru', format: 'dd.MM.yyyy HH:mm' },
             display: { components: { calendar: true, clock: true } }
         });
 
         window.endTimePicker = new tempusDominus.TempusDominus(endElement, {
-            localization: { locale: 'ru', format: 'yyyy-MM-dd HH:mm' },
+            localization: { locale: 'ru', format: 'dd.MM.yyyy HH:mm' },
             display: { components: { calendar: true, clock: true } }
         });
 
