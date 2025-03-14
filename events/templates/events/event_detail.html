@@ -1,0 +1,11 @@
+{% extends 'events/base.html' %}
+
+{% block title %}{{ event.title }}{% endblock %}
+
+{% block content %}
+    <h2>{{ event.title }}</h2>
+    <p><strong>Описание:</strong> {{ event.description }}</p>
+    <p><strong>Место:</strong> {{ event.location }}</p>
+    <p><strong>Дата:</strong> {{ event.start_time|date:"d.m.Y H:i" }} - {{ event.end_time|date:"d.m.Y H:i" }}</p>
+    <a href="{% url 'event-list' %}" class="btn btn-secondary">Назад</a>
+{% endblock %}
