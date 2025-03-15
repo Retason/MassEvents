@@ -11,14 +11,107 @@
     <p><strong>Дата и время начала:</strong> {{ event.start_time|date:"d.m.Y H:i" }}</p>
     <p><strong>Дата и время окончания:</strong> {{ event.end_time|date:"d.m.Y H:i" }}</p>
 
+    <!-- Карта с точкой мероприятия -->
+    <div class="mb-3">
+        <label for="map" class="form-label">Местоположение:</label>
+        <div id="map" style="width: 100%; height: 400px;"></div>
+    </div>
+
+    <h3 class="mt-4">Этапы мероприятия:</h3>
+
+{% if event.stages.all %}
+    <ul class="list-group">
+        {% for stage in event.stages.all %}
+            <li class="list-group-item">
+                <strong>{{ stage.title }}</strong> ({{ stage.start_time|date:"d.m.Y H:i" }} - {{ stage.end_time|date:"d.m.Y H:i" }})
+                <p>{{ stage.description }}</p>
+
+                {% if user == event.organizer or user.is_superuser %}
+                    <a href="{% url 'stage-edit' stage.id %}" class="btn btn-warning btn-sm">Редактировать</a>
+                    <a href="{% url 'stage-delete' stage.id %}" class="btn btn-danger btn-sm">Удалить</a>
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>Этапы не добавлены.</p>
+{% endif %}
+
+
+    {% if user == event.organizer or user.is_superuser %}
+        <a href="{% url 'stage-create' event.id %}" class="btn btn-success mt-2">Добавить этап</a>
+    {% endif %}
+
+
+    <!-- Блок записи на мероприятие -->
+    {% if user.is_authenticated %}
+        {% if is_registered %}
+            <form method="post" action="{% url 'event-unregister' event.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning">Отменить запись</button>
+            </form>
+        {% else %}
+            <form method="post" action="{% url 'event-register' event.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">Записаться</button>
+            </form>
+        {% endif %}
+    {% else %}
+        <p><a href="{% url 'login' %}">Войдите</a>, чтобы записаться.</p>
+    {% endif %}
+
+
     <a href="{% url 'event-list' %}" class="btn btn-secondary">Назад</a>
 
-    {% if user == event.organizer %}
-        <a href="{% url 'event-edit' event.pk %}" class="btn btn-warning">Редактировать</a>
-        <form action="{% url 'event-delete' event.pk %}" method="post" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-danger" onclick="return confirm('Вы уверены, что хотите удалить мероприятие?');">Удалить</button>
-        </form>
+    {% if user.is_authenticated %}
+        {% if user == event.organizer or user.is_superuser %}
+            <a href="{% url 'event-edit' event.id %}" class="btn btn-warning">Редактировать</a>
+            <a href="{% url 'event-delete' event.id %}" class="btn btn-danger">Удалить</a>
+        {% endif %}
+    {% endif %}
+
+
+
+    <!-- Список участников -->
+    {% if event.eventregistration_set.exists %}
+        <h3 class="mt-4">Записанные участники:</h3>
+        <ul>
+            {% for registration in event.eventregistration_set.all %}
+                <li>{{ registration.user.username }} ({{ registration.registered_at|date:"d.m.Y H:i" }})</li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Пока никто не записался.</p>
     {% endif %}
 </div>
+
+<!-- Подключаем Яндекс.Карты -->
+<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU"></script>
+
+<script>
+    ymaps.ready(init);
+
+    function init() {
+        var lat = "{{ event.latitude|default:'55.751574' }}";
+        var lon = "{{ event.longitude|default:'37.573856' }}";
+
+        // Проверяем, есть ли корректные координаты
+        if (!lat || !lon || lat === "" || lon === "None") {
+            lat = "55.751574";  // Москва по умолчанию
+            lon = "37.573856";
+        }
+
+        var myMap = new ymaps.Map("map", {
+            center: [lat, lon],
+            zoom: 14
+        });
+
+        var placemark = new ymaps.Placemark([lat, lon], {
+            balloonContent: "{{ event.title }}"
+        });
+
+        myMap.geoObjects.add(placemark);
+    }
+</script>
+
 {% endblock %}
