@@ -2,10 +2,11 @@ from django import forms
 from datetime import datetime
 from .models import Event, EventStage
 
+
 class EventForm(forms.ModelForm):
     class Meta:
         model = Event
-        fields = ['title', 'description', 'location', 'start_time', 'end_time']
+        fields = ['title', 'description', 'location', 'start_time', 'end_time', 'max_participants', 'image']
         widgets = {
             'start_time': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_start_time'}),
             'end_time': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_end_time'}),

@@ -1,0 +1,67 @@
+.event-banner {
+    width: 100%; /* Занимает всю ширину карточки */
+    height: 350px; /* Чуть меньше высота для более сбалансированного вида */
+    object-fit: cover; /* Обрезает изображение, сохраняя пропорции */
+    border-radius: 4px; /* Скругление углов */
+    display: block; /* Убирает лишние отступы */
+}
+
+.event-card-link {
+    text-decoration: none; /* Убираем подчёркивание у ссылки */
+    color: inherit; /* Сохраняем стандартный цвет текста */
+    display: block;
+}
+
+.event-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    padding: 8px; /* Уменьшенный внутренний отступ */
+}
+
+.event-card:hover {
+    transform: scale(1.03); /* Лёгкое увеличение карточки */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); /* Тень при наведении */
+}
+
+.event-card {
+    height: 100%; /* Карточка всегда занимает всю доступную высоту */
+    display: flex;
+    flex-direction: column;
+    padding: 10px; /* Немного уменьшаем общий отступ */
+}
+
+.event-card .card-body {
+    flex-grow: 1; /* Растягиваем тело карточки */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* Распределяем контент */
+    padding: 8px; /* Уменьшаем отступы внутри карточки */
+}
+
+/* Фиксируем высоту заголовка */
+.event-card .card-title {
+    min-height: 45px; /* Чуть уменьшаем высоту */
+    font-size: 1.1rem; /* Чуть компактнее текст */
+    font-weight: bold;
+    margin-bottom: 5px; /* Уменьшаем отступ */
+}
+
+/* Фиксируем высоту текста (даты, места) */
+.event-card .card-text {
+    min-height: 40px; /* Уменьшаем пространство */
+    font-size: 0.95rem; /* Делаем текст немного компактнее */
+    margin-bottom: 4px; /* Уменьшаем отступы */
+}
+
+/* Обрезаем слишком длинный текст */
+.event-card .card-text.truncate {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* Максимум 2 строки */
+    -webkit-box-orient: vertical;
+    text-overflow: ellipsis;
+}
+
+/* Уменьшаем расстояние между карточками */
+.card.mb-3 {
+    margin-bottom: 8px; /* Уменьшаем пространство между карточками */
+}

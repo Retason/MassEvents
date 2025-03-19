@@ -39,15 +39,11 @@ def event_create(request):
         return redirect('event-list')
 
     if request.method == 'POST':
-        print("Данные из формы:", request.POST)  # Проверяем что приходит в запросе
-
-        # Проверяем, есть ли `end_time` в `POST`-запросе
-        if 'end_time' not in request.POST or not request.POST['end_time']:
-            print("Ошибка: end_time отсутствует в запросе или пустое!")
-            messages.error(request, "Ошибка: Дата окончания мероприятия не передана!")
-            return render(request, 'events/event_form.html', {'form': EventForm(request.POST)})
-
         post_data = request.POST.copy()
+        files_data = request.FILES
+
+        print("Данные из формы:", post_data)
+        print("Загруженные файлы:", request.FILES)  # Проверяем, загружается ли файл
 
         # Пробуем конвертировать дату
         try:
@@ -60,28 +56,27 @@ def event_create(request):
             messages.error(request, "Ошибка: неверный формат даты и времени!")
             return render(request, 'events/event_form.html', {'form': EventForm(post_data)})
 
-        print("После обработки:", post_data)  # Вывод обработанных данных
-
-        form = EventForm(post_data)
+        form = EventForm(post_data, files_data)
 
         if form.is_valid():
             event = form.save(commit=False)
             event.organizer = request.user
+
+            # Убеждаемся, что координаты сохраняются
+            event.latitude = post_data.get('latitude') or None
+            event.longitude = post_data.get('longitude') or None
+
             event.save()
             messages.success(request, "Мероприятие успешно создано!")
             return redirect('event-list')
         else:
-            print("Ошибка формы:", form.errors)  # Выводим ошибки формы
+            print("Ошибка формы:", form.errors)
             messages.error(request, f"Ошибка при создании мероприятия: {form.errors}")
 
     else:
         form = EventForm()
 
     return render(request, 'events/event_form.html', {'form': form})
-
-
-
-
 
 
 @login_required
@@ -107,7 +102,7 @@ def event_edit(request, pk):
             messages.error(request, "Ошибка: неверный формат даты и времени!")
             return render(request, 'events/event_form.html', {'form': EventForm(post_data), 'event': event, 'is_edit': True})
 
-        form = EventForm(post_data, instance=event)
+        form = EventForm(post_data, request.FILES, instance=event)
 
         if form.is_valid():
             form.save()
@@ -117,10 +112,20 @@ def event_edit(request, pk):
             messages.error(request, "Ошибка при обновлении мероприятия.")
 
     else:
-        form = EventForm(instance=event)
+        # Приводим дату к правильному формату перед отображением в форме
+        formatted_start_time = event.start_time.strftime("%d.%m.%Y, %H:%M") if event.start_time else ""
+        formatted_end_time = event.end_time.strftime("%d.%m.%Y, %H:%M") if event.end_time else ""
+
+        form = EventForm(instance=event, initial={
+            'start_time': event.start_time.strftime("%d.%m.%Y, %H:%M"),
+            'end_time': event.end_time.strftime("%d.%m.%Y, %H:%M"),
+            'location': event.location,
+        })
+
+    print("Значение start_time в форме:", form.instance.start_time)
+    print("Значение end_time в форме:", form.instance.end_time)
 
     return render(request, 'events/event_form.html', {'form': form, 'event': event, 'is_edit': True})
-
 
 
 @login_required
@@ -138,13 +143,15 @@ def event_delete(request, pk):
     return redirect('event-list')
 
 
-
 @login_required
 def register_for_event(request, event_id):
-    """Записывает пользователя на мероприятие"""
+    """Записывает пользователя на мероприятие, если есть места"""
     event = get_object_or_404(Event, id=event_id)
 
-    # Проверяем, записан ли уже пользователь
+    if event.is_full():
+        messages.error(request, "Лимит участников достигнут! Вы не можете записаться.")
+        return redirect('event-detail', pk=event_id)
+
     if EventRegistration.objects.filter(user=request.user, event=event).exists():
         messages.warning(request, "Вы уже записаны на это мероприятие!")
     else:
@@ -152,6 +159,7 @@ def register_for_event(request, event_id):
         messages.success(request, "Вы успешно записались на мероприятие!")
 
     return redirect('event-detail', pk=event_id)
+
 
 
 @login_required

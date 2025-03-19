@@ -5,11 +5,19 @@
 {% block content %}
 <div class="container">
     <h2>{{ event.title }}</h2>
+
+    {% if event.image %}
+        <img src="{{ event.image.url }}" class="event-banner" alt="Изображение мероприятия">
+    {% endif %}
+
     <p>{{ event.description }}</p>
 
     <p><strong>Место:</strong> {{ event.location }}</p>
     <p><strong>Дата и время начала:</strong> {{ event.start_time|date:"d.m.Y H:i" }}</p>
     <p><strong>Дата и время окончания:</strong> {{ event.end_time|date:"d.m.Y H:i" }}</p>
+
+    <p><strong>Максимальное количество участников:</strong> {{ event.max_participants }}</p>
+    <p><strong>Записано:</strong> {{ event.eventregistration_set.count }} участников</p>
 
     <!-- Карта с точкой мероприятия -->
     <div class="mb-3">
@@ -19,29 +27,27 @@
 
     <h3 class="mt-4">Этапы мероприятия:</h3>
 
-{% if event.stages.all %}
-    <ul class="list-group">
-        {% for stage in event.stages.all %}
-            <li class="list-group-item">
-                <strong>{{ stage.title }}</strong> ({{ stage.start_time|date:"d.m.Y H:i" }} - {{ stage.end_time|date:"d.m.Y H:i" }})
-                <p>{{ stage.description }}</p>
+    {% if event.stages.all %}
+        <ul class="list-group">
+            {% for stage in event.stages.all %}
+                <li class="list-group-item">
+                    <strong>{{ stage.title }}</strong> ({{ stage.start_time|date:"d.m.Y H:i" }} - {{ stage.end_time|date:"d.m.Y H:i" }})
+                    <p>{{ stage.description }}</p>
 
-                {% if user == event.organizer or user.is_superuser %}
-                    <a href="{% url 'stage-edit' stage.id %}" class="btn btn-warning btn-sm">Редактировать</a>
-                    <a href="{% url 'stage-delete' stage.id %}" class="btn btn-danger btn-sm">Удалить</a>
-                {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p>Этапы не добавлены.</p>
-{% endif %}
-
+                    {% if user == event.organizer or user.is_superuser %}
+                        <a href="{% url 'stage-edit' stage.id %}" class="btn btn-warning btn-sm">Редактировать</a>
+                        <a href="{% url 'stage-delete' stage.id %}" class="btn btn-danger btn-sm">Удалить</a>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Этапы не добавлены.</p>
+    {% endif %}
 
     {% if user == event.organizer or user.is_superuser %}
         <a href="{% url 'stage-create' event.id %}" class="btn btn-success mt-2">Добавить этап</a>
     {% endif %}
-
 
     <!-- Блок записи на мероприятие -->
     {% if user.is_authenticated %}
@@ -50,16 +56,17 @@
                 {% csrf_token %}
                 <button type="submit" class="btn btn-warning">Отменить запись</button>
             </form>
-        {% else %}
+        {% elif event.eventregistration_set.count < event.max_participants %}
             <form method="post" action="{% url 'event-register' event.id %}">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-primary">Записаться</button>
             </form>
+        {% else %}
+            <p class="text-danger">Лимит участников достигнут! Запись закрыта.</p>
         {% endif %}
     {% else %}
         <p><a href="{% url 'login' %}">Войдите</a>, чтобы записаться.</p>
     {% endif %}
-
 
     <a href="{% url 'event-list' %}" class="btn btn-secondary">Назад</a>
 
@@ -69,8 +76,6 @@
             <a href="{% url 'event-delete' event.id %}" class="btn btn-danger">Удалить</a>
         {% endif %}
     {% endif %}
-
-
 
     <!-- Список участников -->
     {% if event.eventregistration_set.exists %}
@@ -92,13 +97,12 @@
     ymaps.ready(init);
 
     function init() {
-        var lat = "{{ event.latitude|default:'55.751574' }}";
-        var lon = "{{ event.longitude|default:'37.573856' }}";
+        var lat = parseFloat("{{ event.latitude|default:'55.751574' }}");
+        var lon = parseFloat("{{ event.longitude|default:'37.573856' }}");
 
-        // Проверяем, есть ли корректные координаты
-        if (!lat || !lon || lat === "" || lon === "None") {
-            lat = "55.751574";  // Москва по умолчанию
-            lon = "37.573856";
+        if (isNaN(lat) || isNaN(lon)) {
+            lat = 55.751574;
+            lon = 37.573856;
         }
 
         var myMap = new ymaps.Map("map", {
@@ -113,5 +117,4 @@
         myMap.geoObjects.add(placemark);
     }
 </script>
-
 {% endblock %}

@@ -1,5 +1,11 @@
 from django.db import models
-from django.conf import settings  # Импортируем настройки Django
+from django.conf import settings
+import os
+
+
+def event_image_upload_path(instance, filename):
+    """Генерирует путь для сохранения изображений мероприятий"""
+    return f'events/{instance.id}/{filename}'
 
 
 class Event(models.Model):
@@ -8,15 +14,29 @@ class Event(models.Model):
     location = models.CharField(max_length=255, blank=True, null=True)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField()
-    organizer = models.ForeignKey(settings.AUTH_USER_MODEL,
-                                  on_delete=models.CASCADE)  # Используем кастомную модель пользователя
+    organizer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
-    # Новые поля для карты
     latitude = models.FloatField(blank=True, null=True)
     longitude = models.FloatField(blank=True, null=True)
 
+    image = models.ImageField(upload_to=event_image_upload_path, blank=True, null=True)
+    max_participants = models.PositiveIntegerField(default=100)
+
+    def save(self, *args, **kwargs):
+        """Удаляем старый баннер при загрузке нового"""
+        try:
+            old_instance = Event.objects.get(id=self.id)
+            if old_instance.image and old_instance.image != self.image:
+                if os.path.isfile(old_instance.image.path):
+                    os.remove(old_instance.image.path)
+        except Event.DoesNotExist:
+            pass  # Если объект новый, пропускаем проверку
+
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.title
+
 
 
 class EventRegistration(models.Model):
