@@ -1,5 +1,11 @@
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+
+dotenv_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+load_dotenv(dotenv_path)
+
+print("[DEBUG] Загружаем EMAIL_HOST_USER:", os.getenv("EMAIL_HOST_USER"))
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -8,6 +14,21 @@ SECRET_KEY = 'django-insecure-8n@tv)q!yp+1oa16+vz(p(l#c=9qv33yh=kwha_f!#sjok=@+e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 ALLOWED_HOSTS = []
+
+USE_TZ = True
+TIME_ZONE = 'Europe/Moscow'
+
+
+SITE_URL = "http://127.0.0.1:8000"  # Изменить на продакшен URL при развертывании)
+# Почта
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
 
 # Application definition
 INSTALLED_APPS = [

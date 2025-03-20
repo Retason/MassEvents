@@ -28,12 +28,13 @@
         <div class="mb-3">
             <label for="image" class="form-label">Изображение</label>
             <input type="file" class="form-control" id="image" name="image" onchange="previewImage(event)">
+
             {% if is_edit and form.instance.image %}
                 <p>Текущее изображение:</p>
-                <img id="current-image" src="{{ form.instance.image.url }}" alt="Текущее изображение"
-                     class="event-banner">
+                <img id="current-image" src="{{ form.instance.image.url }}" class="event-edit-banner" alt="Текущее изображение">
             {% endif %}
-            <img id="preview" src="#" alt="Предпросмотр" class="event-banner" style="display: none;">
+
+            <img id="preview" src="#" class="event-edit-banner" alt="Предпросмотр" style="display: none; margin-top: 10px;">
         </div>
 
         <div class="mb-3">
@@ -54,7 +55,7 @@
             <label for="start_time" class="form-label">Дата и время начала</label>
             <div class="input-group" id="startTimePicker">
                 <input type="text" class="form-control datetimepicker-input" id="start_time" name="start_time"
-                       value="{% if form.instance.start_time %}{{ form.instance.start_time|date:'d.m.Y, H:i' }}{% endif %}"
+                       value="{{ form.instance.start_time|date:'d.m.Y, H:i' }}"
                        data-td-target="#startTimePicker">
                     <i class="bi bi-calendar"></i>
                 </button>
@@ -65,8 +66,9 @@
             <label for="end_time" class="form-label">Дата и время окончания</label>
             <div class="input-group" id="endTimePicker">
                 <input type="text" class="form-control datetimepicker-input" id="end_time" name="end_time"
-                       value="{% if form.instance.end_time %}{{ form.instance.end_time|date:'d.m.Y, H:i' }}{% endif %}"
+                       value="{{ form.instance.end_time|date:'d.m.Y, H:i' }}"
                        data-td-target="#endTimePicker">
+                    <i class="bi bi-calendar"></i>
                 </button>
             </div>
         </div>
@@ -105,14 +107,23 @@
 
         console.log("Запуск Tempus Dominus...");
 
+        let now = new Date();
+        let minDateTime = now.toISOString().slice(0, 16).replace("T", " ");
+
+        // Устанавливаем ограничения на ввод прошедших дат
+        startInput.setAttribute("min", minDateTime);
+        endInput.setAttribute("min", minDateTime);
+
         window.startTimePicker = new tempusDominus.TempusDominus(startElement, {
             localization: { locale: 'ru', format: 'dd.MM.yyyy HH:mm' },
-            display: { components: { calendar: true, clock: true } }
+            display: { components: { calendar: true, clock: true } },
+            restrictions: { minDate: now }
         });
 
         window.endTimePicker = new tempusDominus.TempusDominus(endElement, {
             localization: { locale: 'ru', format: 'dd.MM.yyyy HH:mm' },
-            display: { components: { calendar: true, clock: true } }
+            display: { components: { calendar: true, clock: true } },
+            restrictions: { minDate: now }
         });
 
         console.log("Tempus Dominus инициализирован!");
@@ -130,6 +141,17 @@
         // Преобразование дат для корректного отображения в редактировании
         startInput.value = formatDateForInput(startInput.value);
         endInput.value = formatDateForInput(endInput.value);
+
+        // Устанавливаем зависимость: дата окончания не может быть раньше даты начала
+        startInput.addEventListener("change", function () {
+            let selectedStartTime = new Date(startInput.value.replace(/(\d{2})\.(\d{2})\.(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1T$4:$5'));
+            if (!isNaN(selectedStartTime.getTime())) {
+                endInput.setAttribute("min", selectedStartTime.toISOString().slice(0, 16).replace("T", " "));
+                window.endTimePicker.updateOptions({
+                    restrictions: { minDate: selectedStartTime }
+                });
+            }
+        });
     });
 
     function previewImage(event) {

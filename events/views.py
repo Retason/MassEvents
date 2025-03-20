@@ -7,7 +7,9 @@ from datetime import datetime
 
 
 def event_list(request):
-    """Выводит список всех мероприятий."""
+    """Выводит список всех мероприятий, закрывая просроченные регистрации"""
+    Event.close_expired_registrations()  # Проверяем все события перед рендерингом
+
     events = Event.objects.all()
     return render(request, 'events/event_list.html', {'events': events})
 
@@ -15,7 +17,9 @@ def event_list(request):
 def event_detail(request, pk):
     event = get_object_or_404(Event, pk=pk)
 
-    # Проверяем, записан ли пользователь
+    # Автоматически закрываем регистрацию перед показом страницы
+    event.check_and_close_registration()  # Теперь метод существует
+
     is_registered = False
     if request.user.is_authenticated:
         is_registered = EventRegistration.objects.filter(user=request.user, event=event).exists()
@@ -23,7 +27,7 @@ def event_detail(request, pk):
     context = {
         'event': event,
         'is_registered': is_registered,
-        'latitude': event.latitude if event.latitude else 55.751574,  # Москва по умолчанию
+        'latitude': event.latitude if event.latitude else 55.751574,
         'longitude': event.longitude if event.longitude else 37.573856
     }
 
@@ -117,13 +121,13 @@ def event_edit(request, pk):
         formatted_end_time = event.end_time.strftime("%d.%m.%Y, %H:%M") if event.end_time else ""
 
         form = EventForm(instance=event, initial={
-            'start_time': event.start_time.strftime("%d.%m.%Y, %H:%M"),
-            'end_time': event.end_time.strftime("%d.%m.%Y, %H:%M"),
+            'start_time': formatted_start_time,
+            'end_time': formatted_end_time,
             'location': event.location,
         })
 
-    print("Значение start_time в форме:", form.instance.start_time)
-    print("Значение end_time в форме:", form.instance.end_time)
+    print("Значение start_time в форме:", formatted_start_time)
+    print("Значение end_time в форме:", formatted_end_time)
 
     return render(request, 'events/event_form.html', {'form': form, 'event': event, 'is_edit': True})
 
@@ -145,11 +149,11 @@ def event_delete(request, pk):
 
 @login_required
 def register_for_event(request, event_id):
-    """Записывает пользователя на мероприятие, если есть места"""
+    """Записывает пользователя на мероприятие, если есть места и регистрация открыта"""
     event = get_object_or_404(Event, id=event_id)
 
-    if event.is_full():
-        messages.error(request, "Лимит участников достигнут! Вы не можете записаться.")
+    if not event.is_registration_open():
+        messages.error(request, "Регистрация на это мероприятие закрыта.")
         return redirect('event-detail', pk=event_id)
 
     if EventRegistration.objects.filter(user=request.user, event=event).exists():
@@ -159,7 +163,6 @@ def register_for_event(request, event_id):
         messages.success(request, "Вы успешно записались на мероприятие!")
 
     return redirect('event-detail', pk=event_id)
-
 
 
 @login_required
@@ -175,6 +178,7 @@ def unregister_from_event(request, event_id):
         messages.warning(request, "Вы не записаны на это мероприятие!")
 
     return redirect('event-detail', pk=event_id)
+
 
 @login_required
 def stage_create(request, event_id):
@@ -265,3 +269,37 @@ def stage_edit(request, stage_id):
         form = EventStageForm(instance=stage)
 
     return render(request, 'events/stage_form.html', {'form': form, 'event': event, 'stage': stage, 'is_edit': True})
+
+
+@login_required
+def toggle_registration(request, event_id):
+    """Позволяет организатору или администратору вручную закрывать или открывать регистрацию"""
+    event = get_object_or_404(Event, id=event_id)
+
+    if request.user != event.organizer and not request.user.is_superuser:
+        messages.error(request, "У вас нет прав на изменение регистрации.")
+        return redirect('event-detail', pk=event.id)
+
+    event.registration_closed = not event.registration_closed
+    event.save()
+
+    if event.registration_closed:
+        messages.success(request, "Регистрация на мероприятие закрыта.")
+    else:
+        messages.success(request, "Регистрация на мероприятие открыта.")
+
+    return redirect('event-detail', pk=event.id)
+
+
+@login_required
+def remove_participant(request, event_id, user_id):
+    """Удаляет участника с мероприятия (только организатор или админ)"""
+    event = get_object_or_404(Event, id=event_id)
+    participant = get_object_or_404(EventRegistration, event=event, user_id=user_id)
+
+    if participant.remove_registration(request.user):
+        messages.success(request, f"Пользователь {participant.user.username} удалён с мероприятия.")
+    else:
+        messages.error(request, "Вы не можете удалить этого пользователя.")
+
+    return redirect('event-detail', pk=event_id)

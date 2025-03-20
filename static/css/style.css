@@ -1,67 +1,90 @@
 .event-banner {
-    width: 100%; /* Занимает всю ширину карточки */
-    height: 350px; /* Чуть меньше высота для более сбалансированного вида */
-    object-fit: cover; /* Обрезает изображение, сохраняя пропорции */
-    border-radius: 4px; /* Скругление углов */
-    display: block; /* Убирает лишние отступы */
+    width: 100%;
+    height: 350px; /* Унифицированная высота */
+    object-fit: cover;
+    border-radius: 4px;
+    display: block;
 }
 
 .event-card-link {
-    text-decoration: none; /* Убираем подчёркивание у ссылки */
-    color: inherit; /* Сохраняем стандартный цвет текста */
+    text-decoration: none;
+    color: inherit;
     display: block;
 }
 
 .event-card {
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    padding: 8px; /* Уменьшенный внутренний отступ */
+    padding: 8px;
+    height: 100%; /* Делаем карточку одинаковой высоты */
+    display: flex;
+    flex-direction: column;
 }
 
 .event-card:hover {
-    transform: scale(1.03); /* Лёгкое увеличение карточки */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); /* Тень при наведении */
-}
-
-.event-card {
-    height: 100%; /* Карточка всегда занимает всю доступную высоту */
-    display: flex;
-    flex-direction: column;
-    padding: 10px; /* Немного уменьшаем общий отступ */
+    transform: scale(1.03);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 .event-card .card-body {
-    flex-grow: 1; /* Растягиваем тело карточки */
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
-    justify-content: space-between; /* Распределяем контент */
-    padding: 8px; /* Уменьшаем отступы внутри карточки */
+    justify-content: space-between;
+    padding: 8px;
 }
 
 /* Фиксируем высоту заголовка */
 .event-card .card-title {
-    min-height: 45px; /* Чуть уменьшаем высоту */
-    font-size: 1.1rem; /* Чуть компактнее текст */
+    min-height: 45px;
+    font-size: 1.1rem;
     font-weight: bold;
-    margin-bottom: 5px; /* Уменьшаем отступ */
+    margin-bottom: 5px;
 }
 
-/* Фиксируем высоту текста (даты, места) */
+/* Фиксируем высоту текстовых полей */
 .event-card .card-text {
-    min-height: 40px; /* Уменьшаем пространство */
-    font-size: 0.95rem; /* Делаем текст немного компактнее */
-    margin-bottom: 4px; /* Уменьшаем отступы */
+    font-size: 0.95rem;
+    margin-bottom: 4px;
 }
 
-/* Обрезаем слишком длинный текст */
-.event-card .card-text.truncate {
-    overflow: hidden;
+/* Ограничиваем высоту места и даты */
+.event-card .event-date {
+    min-height: 25px; /* Одинаковая высота для даты */
+}
+
+.event-card .event-location {
+    min-height: 40px; /* Фиксируем высоту для адреса */
     display: -webkit-box;
-    -webkit-line-clamp: 2; /* Максимум 2 строки */
+    -webkit-line-clamp: 2; /* Ограничиваем адрес двумя строками */
     -webkit-box-orient: vertical;
+    overflow: hidden;
     text-overflow: ellipsis;
 }
 
 /* Уменьшаем расстояние между карточками */
 .card.mb-3 {
-    margin-bottom: 8px; /* Уменьшаем пространство между карточками */
+    margin-bottom: 8px;
 }
+
+.event-detail-banner {
+    width: 100%; /* Подгоняем под контейнер */
+    max-width: 500px; /* Ограничиваем ширину */
+    height: auto; /* Поддерживаем пропорции */
+    object-fit: contain; /* Полное отображение без обрезки */
+    display: block;
+    margin: 10px auto; /* Центрируем и даём небольшой отступ */
+    border-radius: 6px; /* Скругление углов */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Лёгкая тень для аккуратности */
+}
+
+.event-edit-banner {
+    width: 100%; /* Подгоняем под контейнер */
+    max-width: 300px; /* Ограничиваем ширину */
+    height: auto; /* Поддерживаем пропорции */
+    object-fit: contain; /* Полное отображение без обрезки */
+    display: block;
+    margin: 10px auto; /* Центрируем изображение */
+    border-radius: 6px; /* Лёгкое скругление */
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1); /* Добавляем тень */
+}
+

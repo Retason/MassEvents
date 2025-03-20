@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 import os
 
 
@@ -19,24 +20,50 @@ class Event(models.Model):
     latitude = models.FloatField(blank=True, null=True)
     longitude = models.FloatField(blank=True, null=True)
 
-    image = models.ImageField(upload_to=event_image_upload_path, blank=True, null=True)
+    image = models.ImageField(upload_to="events/", blank=True, null=True)
     max_participants = models.PositiveIntegerField(default=100)
+
+    registration_closed = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         """Удаляем старый баннер при загрузке нового"""
-        try:
-            old_instance = Event.objects.get(id=self.id)
-            if old_instance.image and old_instance.image != self.image:
-                if os.path.isfile(old_instance.image.path):
-                    os.remove(old_instance.image.path)
-        except Event.DoesNotExist:
-            pass  # Если объект новый, пропускаем проверку
+        if self.pk:
+            try:
+                old_instance = Event.objects.get(id=self.id)
+                if old_instance.image and old_instance.image != self.image:
+                    if os.path.isfile(old_instance.image.path):
+                        os.remove(old_instance.image.path)
+            except Event.DoesNotExist:
+                pass
 
         super().save(*args, **kwargs)
 
+    def is_full(self):
+        """Проверяем, заполнено ли мероприятие"""
+        return self.eventregistration_set.count() >= self.max_participants
+
+    def check_and_close_registration(self):
+        """Закрывает регистрацию, если мероприятие уже началось"""
+        now = timezone.now()
+        if not self.registration_closed and now >= self.start_time:
+            self.registration_closed = True
+            self.save(update_fields=['registration_closed'])
+
+    @classmethod
+    def close_expired_registrations(cls):
+        """Закрывает регистрацию для всех мероприятий, у которых уже началось событие"""
+        now = timezone.now()
+        events_to_close = cls.objects.filter(start_time__lte=now, registration_closed=False)
+        for event in events_to_close:
+            event.registration_closed = True
+            event.save(update_fields=['registration_closed'])
+
+    def is_registration_open(self):
+        """Определяет, можно ли записываться"""
+        return not self.registration_closed and not self.is_full()
+
     def __str__(self):
         return self.title
-
 
 
 class EventRegistration(models.Model):
@@ -49,6 +76,13 @@ class EventRegistration(models.Model):
 
     def __str__(self):
         return f"{self.user.username} → {self.event.title}"
+
+    def remove_registration(self, requester):
+        """Удаляет участника с мероприятия (только для организатора или админа)"""
+        if requester == self.event.organizer or requester.is_superuser:
+            self.delete()
+            return True
+        return False
 
 
 class EventStage(models.Model):

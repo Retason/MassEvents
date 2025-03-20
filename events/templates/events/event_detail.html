@@ -7,7 +7,7 @@
     <h2>{{ event.title }}</h2>
 
     {% if event.image %}
-        <img src="{{ event.image.url }}" class="event-banner" alt="Изображение мероприятия">
+        <img src="{{ event.image.url }}" class="event-detail-banner" alt="Изображение мероприятия">
     {% endif %}
 
     <p>{{ event.description }}</p>
@@ -51,22 +51,37 @@
 
     <!-- Блок записи на мероприятие -->
     {% if user.is_authenticated %}
-        {% if is_registered %}
-            <form method="post" action="{% url 'event-unregister' event.id %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-warning">Отменить запись</button>
-            </form>
-        {% elif event.eventregistration_set.count < event.max_participants %}
-            <form method="post" action="{% url 'event-register' event.id %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-primary">Записаться</button>
-            </form>
+        {% if event.is_registration_open %}
+            {% if is_registered %}
+                <form method="post" action="{% url 'event-unregister' event.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning">Отменить запись</button>
+                </form>
+            {% else %}
+                <form method="post" action="{% url 'event-register' event.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">Записаться</button>
+                </form>
+            {% endif %}
         {% else %}
-            <p class="text-danger">Лимит участников достигнут! Запись закрыта.</p>
+            <p class="text-danger">Регистрация закрыта.</p>
         {% endif %}
     {% else %}
         <p><a href="{% url 'login' %}">Войдите</a>, чтобы записаться.</p>
     {% endif %}
+
+    <!-- Администратор может закрывать/открывать регистрацию -->
+    {% if user == event.organizer or user.is_superuser %}
+        <form method="post" action="{% url 'toggle-registration' event.id %}">
+            {% csrf_token %}
+            {% if event.registration_closed %}
+                <button type="submit" class="btn btn-success">Открыть регистрацию</button>
+            {% else %}
+                <button type="submit" class="btn btn-danger">Закрыть регистрацию</button>
+            {% endif %}
+        </form>
+    {% endif %}
+
 
     <a href="{% url 'event-list' %}" class="btn btn-secondary">Назад</a>
 
@@ -78,15 +93,16 @@
     {% endif %}
 
     <!-- Список участников -->
-    {% if event.eventregistration_set.exists %}
+    {% if user == event.organizer or user.is_superuser %}
         <h3 class="mt-4">Записанные участники:</h3>
         <ul>
             {% for registration in event.eventregistration_set.all %}
-                <li>{{ registration.user.username }} ({{ registration.registered_at|date:"d.m.Y H:i" }})</li>
+                <li>
+                    {{ registration.user.username }} ({{ registration.registered_at|date:"d.m.Y H:i" }})
+                    <a href="{% url 'remove-participant' event.id registration.user.id %}" class="btn btn-danger btn-sm">Удалить</a>
+                </li>
             {% endfor %}
         </ul>
-    {% else %}
-        <p>Пока никто не записался.</p>
     {% endif %}
 </div>
 
