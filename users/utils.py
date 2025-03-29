@@ -1,6 +1,10 @@
 from django.core.mail import EmailMultiAlternatives
 from django.conf import settings
 from django.urls import reverse
+import qrcode
+from io import BytesIO
+import base64
+
 
 def send_verification_email(user):
     """Отправляет письмо с подтверждением email"""
@@ -31,3 +35,22 @@ def send_verification_email(user):
 
     except Exception as e:
         print(f"[ERROR] Ошибка отправки email: {e}")
+
+
+def generate_qr_code_base64_for_task(task):
+    if not task.code:
+        return None
+
+    url = f"{settings.SITE_URL}/bonus-task/{task.code}/"
+
+    qr = qrcode.QRCode(box_size=10, border=2)
+    qr.add_data(url)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = BytesIO()
+    img.save(buffer, format="PNG")
+    buffer.seek(0)
+    img_bytes = buffer.read()
+    base64_img = base64.b64encode(img_bytes).decode('utf-8')
+    return f"data:image/png;base64,{base64_img}"

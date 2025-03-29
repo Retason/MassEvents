@@ -1,0 +1,42 @@
+{% extends "events/base.html" %}
+
+{% block title %}Админ-панель{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Админ-панель</h2>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card text-bg-primary mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Пользователи</h5>
+                    <p class="card-text">Всего: {{ users_count }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-bg-success mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Транзакции</h5>
+                    <p class="card-text">Всего: {{ transactions_count }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-bg-warning mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Бонусные задания</h5>
+                    <p class="card-text">Всего: {{ bonus_tasks_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3>Управление</h3>
+    <ul class="list-group">
+        <li class="list-group-item"><a href="{% url 'manage_bonus_tasks' %}">🔹 Бонусные задания</a></li>
+        <li class="list-group-item"><a href="#">📋 Управление пользователями</a></li>
+        <li class="list-group-item"><a href="#">💰 История транзакций</a></li>
+    </ul>
+</div>
+{% endblock %}

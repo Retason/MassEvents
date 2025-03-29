@@ -1,27 +1,28 @@
 {% extends 'events/base.html' %}
 
-{% block title %}Добавить этап{% endblock %}
+{% block title %}{% if is_edit %}Редактировать{% else %}Добавить{% endif %} этап{% endblock %}
 
 {% block content %}
 <div class="container">
-    <h2>Добавить этап в "{{ event.title }}"</h2>
+    <h2>{% if is_edit %}Редактирование{% else %}Добавление{% endif %} этапа в "{{ event.title }}"</h2>
+
     <form method="post">
         {% csrf_token %}
 
         <div class="mb-3">
             <label for="id_title" class="form-label">Название этапа</label>
-            <input type="text" class="form-control" id="id_title" name="title" required>
+            <input type="text" class="form-control" id="id_title" name="title" value="{{ form.title.value|default_if_none:'' }}" required>
         </div>
 
         <div class="mb-3">
             <label for="id_description" class="form-label">Описание</label>
-            <textarea class="form-control" id="id_description" name="description"></textarea>
+            <textarea class="form-control" id="id_description" name="description">{{ form.description.value|default_if_none:'' }}</textarea>
         </div>
 
         <div class="mb-3">
             <label for="id_start_time" class="form-label">Дата и время начала</label>
             <div class="input-group" id="startTimePicker" data-td-target-input="nearest">
-                <input type="text" class="form-control" id="id_start_time" name="start_time" data-td-target="#startTimePicker">
+                <input type="text" class="form-control" id="id_start_time" name="start_time" value="{{ form.start_time.value|default_if_none:'' }}" data-td-target="#startTimePicker">
                 <button class="btn btn-outline-secondary" type="button" id="startTimeButton" data-td-target="#startTimePicker" data-td-toggle="datetimepicker">
                     <i class="bi bi-calendar"></i>
                 </button>
@@ -31,7 +32,7 @@
         <div class="mb-3">
             <label for="id_end_time" class="form-label">Дата и время окончания</label>
             <div class="input-group" id="endTimePicker" data-td-target-input="nearest">
-                <input type="text" class="form-control" id="id_end_time" name="end_time" data-td-target="#endTimePicker">
+                <input type="text" class="form-control" id="id_end_time" name="end_time" value="{{ form.end_time.value|default_if_none:'' }}" data-td-target="#endTimePicker">
                 <button class="btn btn-outline-secondary" type="button" id="endTimeButton" data-td-target="#endTimePicker" data-td-toggle="datetimepicker">
                     <i class="bi bi-calendar"></i>
                 </button>
@@ -50,44 +51,25 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        console.log("Tempus Dominus загружен?", typeof tempusDominus);
-
-        if (typeof tempusDominus === 'undefined') {
-            console.error("Tempus Dominus не найден!");
-            return;
-        }
-
         const startElement = document.getElementById('startTimePicker');
         const endElement = document.getElementById('endTimePicker');
 
-        if (!startElement || !endElement) {
-            console.error("Не найден startTimePicker или endTimePicker!");
-            return;
+        if (typeof tempusDominus !== 'undefined' && startElement && endElement) {
+            window.startTimePicker = new tempusDominus.TempusDominus(startElement, {
+                localization: { locale: 'ru', format: 'dd.MM.yyyy HH:mm' },
+                display: { components: { calendar: true, clock: true } }
+            });
+
+            window.endTimePicker = new tempusDominus.TempusDominus(endElement, {
+                localization: { locale: 'ru', format: 'dd.MM.yyyy HH:mm' },
+                display: { components: { calendar: true, clock: true } }
+            });
+
+            document.getElementById('startTimeButton').addEventListener('click', () => startTimePicker.show());
+            document.getElementById('endTimeButton').addEventListener('click', () => endTimePicker.show());
+        } else {
+            console.error("Tempus Dominus не найден или элементы не обнаружены.");
         }
-
-        console.log("Запуск Tempus Dominus...");
-
-        window.startTimePicker = new tempusDominus.TempusDominus(startElement, {
-            localization: { locale: 'ru', format: 'dd.MM.yyyy HH:mm' },
-            display: { components: { calendar: true, clock: true } }
-        });
-
-        window.endTimePicker = new tempusDominus.TempusDominus(endElement, {
-            localization: { locale: 'ru', format: 'dd.MM.yyyy HH:mm' },
-            display: { components: { calendar: true, clock: true } }
-        });
-
-        console.log("Tempus Dominus инициализирован!");
-
-        document.getElementById('startTimeButton').addEventListener('click', function() {
-            console.log("Кнопка календаря (start) нажата!");
-            startTimePicker.show();
-        });
-
-        document.getElementById('endTimeButton').addEventListener('click', function() {
-            console.log("Кнопка календаря (end) нажата!");
-            endTimePicker.show();
-        });
     });
 </script>
 {% endblock %}

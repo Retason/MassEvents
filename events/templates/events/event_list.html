@@ -6,15 +6,37 @@
 {% block content %}
     <h2 class="mb-3">Мероприятия</h2>
 
+    <!-- Форма фильтрации и поиска -->
+    <form method="GET" class="mb-4 row">
+        <div class="col-md-4">
+            <input type="text" name="search" class="form-control" placeholder="Поиск по названию"
+                   value="{{ request.GET.search }}">
+        </div>
+        <div class="col-md-3">
+            <input type="date" name="date" class="form-control" value="{{ request.GET.date }}">
+        </div>
+        <div class="col-md-3">
+            <select name="status" class="form-select">
+                <option value="">Все статусы</option>
+                <option value="open" {% if request.GET.status == "open" %}selected{% endif %}>Открыта регистрация</option>
+                <option value="closed" {% if request.GET.status == "closed" %}selected{% endif %}>Регистрация закрыта</option>
+                <option value="finished" {% if request.GET.status == "finished" %}selected{% endif %}>Завершено</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Фильтровать</button>
+        </div>
+    </form>
+
     {% if user.is_authenticated and user.role in "admin organizer" %}
-        <a href="{% url 'event-create' %}" class="btn btn-primary mb-3">Создать мероприятие</a>
+        <a href="{% url 'event-create' %}" class="btn btn-success mb-3">Создать мероприятие</a>
     {% endif %}
 
     <div class="row">
         {% for event in events %}
             <div class="col-md-4">
                 <a href="{% url 'event-detail' event.id %}" class="event-card-link">
-                    <div class="card mb-3 event-card d-flex flex-column h-100">
+                    <div class="card mb-3 event-card d-flex flex-column h-100 border-0 shadow">
                         {% if event.image %}
                             <img src="{{ event.image.url }}" class="event-banner" alt="Изображение мероприятия">
                         {% else %}
@@ -22,8 +44,27 @@
                         {% endif %}
                         <div class="card-body">
                             <h5 class="card-title">{{ event.title }}</h5>
-                            <p class="card-text event-date"><strong>Дата:</strong> {{ event.start_time|date:"d.m.Y H:i" }}</p>
-                            <p class="card-text event-location"><strong>Место:</strong> {{ event.location }}</p>
+
+                            <p class="card-text event-date">
+                                <strong>Дата:</strong> {{ event.start_time|date:"d.m.Y H:i" }}
+                            </p>
+
+                            <p class="card-text event-location">
+                                <strong>Место:</strong> {{ event.location }}
+                            </p>
+
+                            <p class="card-text">
+                                <strong>Участники:</strong> {{ event.eventregistration_set.count }}/{{ event.max_participants }}
+                            </p>
+
+                            <!-- Бейдж статуса -->
+                            {% if event.registration_closed %}
+                                <span class="badge bg-danger">Регистрация закрыта</span>
+                            {% elif event.start_time < now %}
+                                <span class="badge bg-secondary">Завершено</span>
+                            {% else %}
+                                <span class="badge bg-success">Регистрация открыта</span>
+                            {% endif %}
                         </div>
                     </div>
                 </a>

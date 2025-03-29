@@ -1,0 +1,62 @@
+{% extends 'events/base.html' %}
+{% block title %}Профиль{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">👤 Профиль: {{ user.username }}</h2>
+
+<p><strong>Email:</strong> {{ user.email }}</p>
+<p><strong>Роль:</strong> {{ user.get_role_display }}</p>
+<p><strong>Баланс:</strong> 💰 {{ balance }} ₽</p>
+
+<hr>
+
+<h4>📅 Вы записаны на мероприятия:</h4>
+{% if registered_events %}
+    <ul class="list-group mb-4">
+        {% for reg in registered_events %}
+            <li class="list-group-item">
+                <a href="{% url 'event-detail' reg.event.id %}">
+                    {{ reg.event.title }} — {{ reg.event.start_time|date:"d.m.Y H:i" }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>Вы ещё не записались на мероприятия.</p>
+{% endif %}
+
+<h4>🎯 Выполненные бонусные задания:</h4>
+{% if bonus_tasks %}
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Задание</th>
+                <th>Награда</th>
+                <th>Дата</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in bonus_tasks %}
+                <tr>
+                    <td>{{ task.task.name }}</td>
+                    <td>+{{ task.task.reward }} ₽</td>
+                    <td>{{ task.completed_at|date:"d.m.Y H:i" }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>Вы ещё не выполняли бонусных заданий.</p>
+{% endif %}
+
+<h4>🎁 Ввести бонус-код</h4>
+<form method="POST" action="{% url 'submit-bonus-code' %}">
+    {% csrf_token %}
+    <div class="mb-3">
+        <input type="text" name="code" class="form-control" placeholder="Введите код">
+    </div>
+    <button type="submit" class="btn btn-success">Получить бонус</button>
+</form>
+
+<a href="{% url 'wallet' %}" class="btn btn-outline-primary mt-4">💼 Перейти в кошелёк</a>
+{% endblock %}

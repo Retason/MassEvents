@@ -11,22 +11,19 @@
     {% endif %}
 
     <p>{{ event.description }}</p>
-
     <p><strong>Место:</strong> {{ event.location }}</p>
     <p><strong>Дата и время начала:</strong> {{ event.start_time|date:"d.m.Y H:i" }}</p>
     <p><strong>Дата и время окончания:</strong> {{ event.end_time|date:"d.m.Y H:i" }}</p>
-
     <p><strong>Максимальное количество участников:</strong> {{ event.max_participants }}</p>
     <p><strong>Записано:</strong> {{ event.eventregistration_set.count }} участников</p>
 
-    <!-- Карта с точкой мероприятия -->
+    <!-- Карта -->
     <div class="mb-3">
-        <label for="map" class="form-label">Местоположение:</label>
+        <label class="form-label">Местоположение:</label>
         <div id="map" style="width: 100%; height: 400px;"></div>
     </div>
 
     <h3 class="mt-4">Этапы мероприятия:</h3>
-
     {% if event.stages.all %}
         <ul class="list-group">
             {% for stage in event.stages.all %}
@@ -46,16 +43,21 @@
     {% endif %}
 
     {% if user == event.organizer or user.is_superuser %}
-        <a href="{% url 'stage-create' event.id %}" class="btn btn-success mt-2">Добавить этап</a>
+        <div class="d-flex gap-2 mt-3 flex-wrap">
+            <a href="{% url 'stage-create' event.id %}" class="btn btn-success">➕ Добавить этап</a>
+            <a href="{% url 'event-bonus-tasks' event.id %}" class="btn btn-outline-primary">🛠️ Редактировать задания</a>
+        </div>
+    {% elif is_registered and event.enable_tasks %}
+        <a href="{% url 'event-user-tasks' event.id %}" class="btn btn-outline-primary mt-3">🎯 Выполнить задания</a>
     {% endif %}
 
-    <!-- Блок записи на мероприятие -->
+    <!-- Регистрация -->
     {% if user.is_authenticated %}
         {% if event.is_registration_open %}
             {% if is_registered %}
                 <form method="post" action="{% url 'event-unregister' event.id %}">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-warning">Отменить запись</button>
+                    <button type="submit" class="btn btn-warning mt-2">Отменить запись</button>
                 </form>
             {% else %}
                 <form method="post" action="{% url 'event-register' event.id %}">
@@ -70,29 +72,35 @@
         <p><a href="{% url 'login' %}">Войдите</a>, чтобы записаться.</p>
     {% endif %}
 
-    <!-- Администратор может закрывать/открывать регистрацию -->
     {% if user == event.organizer or user.is_superuser %}
         <form method="post" action="{% url 'toggle-registration' event.id %}">
             {% csrf_token %}
             {% if event.registration_closed %}
-                <button type="submit" class="btn btn-success">Открыть регистрацию</button>
+                <button type="submit" class="btn btn-success mt-2">Открыть регистрацию</button>
             {% else %}
-                <button type="submit" class="btn btn-danger">Закрыть регистрацию</button>
+                <button type="submit" class="btn btn-danger mt-2">Закрыть регистрацию</button>
             {% endif %}
         </form>
     {% endif %}
 
+    <a href="{% url 'event-list' %}" class="btn btn-secondary mt-2">Назад</a>
 
-    <a href="{% url 'event-list' %}" class="btn btn-secondary">Назад</a>
-
-    {% if user.is_authenticated %}
-        {% if user == event.organizer or user.is_superuser %}
-            <a href="{% url 'event-edit' event.id %}" class="btn btn-warning">Редактировать</a>
-            <a href="{% url 'event-delete' event.id %}" class="btn btn-danger">Удалить</a>
-        {% endif %}
+    {% if user == event.organizer or user.is_superuser %}
+        <a href="{% url 'event-edit' event.id %}" class="btn btn-warning mt-2">Редактировать</a>
+        <a href="{% url 'event-delete' event.id %}" class="btn btn-danger mt-2">Удалить</a>
     {% endif %}
 
-    <!-- Список участников -->
+    {% if event.enable_tasks %}
+        <div class="alert alert-info mt-3">
+            🔓 На этом мероприятии доступны конкурсы и бонусные задания!
+        </div>
+    {% else %}
+        <div class="alert alert-warning mt-3">
+            🔒 На этом мероприятии конкурсы отключены.
+        </div>
+    {% endif %}
+
+    <!-- Участники -->
     {% if user == event.organizer or user.is_superuser %}
         <h3 class="mt-4">Записанные участники:</h3>
         <ul>
@@ -106,31 +114,20 @@
     {% endif %}
 </div>
 
-<!-- Подключаем Яндекс.Карты -->
+<!-- Яндекс.Карты -->
 <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU"></script>
-
 <script>
-    ymaps.ready(init);
-
-    function init() {
-        var lat = parseFloat("{{ event.latitude|default:'55.751574' }}");
-        var lon = parseFloat("{{ event.longitude|default:'37.573856' }}");
-
-        if (isNaN(lat) || isNaN(lon)) {
-            lat = 55.751574;
-            lon = 37.573856;
-        }
-
+    ymaps.ready(function () {
         var myMap = new ymaps.Map("map", {
-            center: [lat, lon],
+            center: [{{ event.latitude|default:55.751574 }}, {{ event.longitude|default:37.573856 }}],
             zoom: 14
         });
 
-        var placemark = new ymaps.Placemark([lat, lon], {
+        var placemark = new ymaps.Placemark([{{ event.latitude|default:55.751574 }}, {{ event.longitude|default:37.573856 }}], {
             balloonContent: "{{ event.title }}"
         });
 
         myMap.geoObjects.add(placemark);
-    }
+    });
 </script>
 {% endblock %}

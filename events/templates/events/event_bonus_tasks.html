@@ -1,0 +1,58 @@
+{% extends 'events/base.html' %}
+{% load qr_filters %}
+
+{% block title %}Задания мероприятия{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>🎯 Задания для "{{ event.title }}"</h2>
+
+    <a href="{% url 'event-detail' event.id %}" class="btn btn-secondary mb-3">← Назад к мероприятию</a>
+    <a href="{% url 'bonus-task-create' %}?event={{ event.id }}" class="btn btn-primary mb-3">➕ Добавить задание</a>
+
+    {% if tasks %}
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Тип</th>
+                    <th>Код</th>
+                    <th>Награда</th>
+                    <th>Статус</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td>{{ task.name }}</td>
+                    <td>{{ task.get_type_display }}</td>
+                    <td>
+                        {{ task.code|default:"—" }}<br>
+                        {% if task.code %}
+                            <img src="{{ task|generate_task_qr }}" alt="QR" style="max-height: 100px; margin-top: 5px;">
+                        {% endif %}
+                    </td>
+                    <td>{{ task.reward }} ₽</td>
+                    <td>
+                        {% if task.is_active %}
+                            <span class="badge bg-success">Активно</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Выключено</span>
+                        {% endif %}
+                    </td>
+                    <td class="d-flex gap-1 flex-wrap">
+                        <a href="{% url 'bonus-task-edit' task.id %}" class="btn btn-sm btn-warning">✏️</a>
+                        <a href="{% url 'bonus-task-delete' task.id %}" class="btn btn-sm btn-danger">🗑️</a>
+                        <a href="{% url 'task-completions' task.id %}" class="btn btn-sm btn-outline-info">📊</a>
+                        <a href="{% url 'task-completions-export' task.id %}" class="btn btn-sm btn-outline-success">⬇️ Excel</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Задания ещё не добавлены.</p>
+    {% endif %}
+</div>
+{% endblock %}

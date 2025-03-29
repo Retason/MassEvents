@@ -25,6 +25,11 @@ class Event(models.Model):
 
     registration_closed = models.BooleanField(default=False)
 
+    enable_tasks = models.BooleanField(
+        default=True,
+        verbose_name="Включить конкурсы и бонусные задания"
+    )
+
     def save(self, *args, **kwargs):
         """Удаляем старый баннер при загрузке нового"""
         if self.pk:
@@ -99,3 +104,76 @@ class EventStage(models.Model):
 
     def __str__(self):
         return f"{self.event.title} - {self.title}"
+
+
+class EventTask(models.Model):
+    TYPE_CODE = 'code'
+    TYPE_QUESTION = 'question'
+
+    TASK_TYPES = [
+        (TYPE_CODE, 'Кодовое слово / QR-код'),
+        (TYPE_QUESTION, 'Ответ на вопрос'),
+    ]
+
+    event = models.ForeignKey('Event', on_delete=models.CASCADE, related_name='tasks')
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    type = models.CharField(max_length=20, choices=TASK_TYPES, default=TYPE_CODE)
+    code = models.CharField(max_length=100, help_text="Код или правильный ответ", blank=True, null=True)
+    reward = models.PositiveIntegerField(default=10)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Задание"
+        verbose_name_plural = "Задания"
+
+    def __str__(self):
+        return f"{self.title} ({self.get_type_display()})"
+
+
+class TaskCompletion(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    task = models.ForeignKey(EventTask, on_delete=models.CASCADE)
+    submitted_answer = models.CharField(max_length=255, blank=True)
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'task')
+        verbose_name = "Выполнение задания"
+        verbose_name_plural = "Выполненные задания"
+
+    def __str__(self):
+        return f"{self.user.username} → {self.task.title}"
+
+
+class BonusTask(models.Model):
+    CODE = 'code'
+    SYSTEM = 'system'
+
+    TASK_TYPES = [
+        (SYSTEM, 'Системное задание'),
+        (CODE, 'Бонус-код'),
+    ]
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    reward = models.PositiveIntegerField()  # Баллы
+    type = models.CharField(max_length=20, choices=TASK_TYPES, default=SYSTEM)
+    code = models.CharField(max_length=50, blank=True, null=True, unique=True)
+    is_active = models.BooleanField(default=True)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="bonus_tasks", null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.reward} баллов)"
+
+
+class BonusTaskCompletion(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    task = models.ForeignKey(BonusTask, on_delete=models.CASCADE)
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'task')  # нельзя выполнить дважды
+
+    def __str__(self):
+        return f"{self.user.username} — {self.task.name}"

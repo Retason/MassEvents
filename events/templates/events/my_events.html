@@ -1,0 +1,32 @@
+{% extends 'events/base.html' %}
+{% block title %}Мои мероприятия{% endblock %}
+{% load static %}
+
+{% block content %}
+    <h2 class="mb-3">📋 Мои мероприятия</h2>
+
+    <a href="{% url 'event-create' %}" class="btn btn-primary mb-3">Создать новое мероприятие</a>
+
+    <div class="row">
+        {% for event in events %}
+            <div class="col-md-4">
+                <a href="{% url 'event-detail' event.id %}" class="event-card-link">
+                    <div class="card mb-3 event-card d-flex flex-column h-100">
+                        {% if event.image and event.image.url %}
+                            <img src="{{ event.image.url }}" class="event-banner" alt="Изображение мероприятия">
+                        {% else %}
+                            <img src="{% static 'images/default_event.jpg' %}" class="event-banner" alt="Нет изображения">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ event.title }}</h5>
+                            <p class="card-text event-date"><strong>Дата:</strong> {{ event.start_time|date:"d.m.Y H:i" }}</p>
+                            <p class="card-text event-location"><strong>Место:</strong> {{ event.location }}</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        {% empty %}
+            <p>У вас пока нет мероприятий.</p>
+        {% endfor %}
+    </div>
+{% endblock %}

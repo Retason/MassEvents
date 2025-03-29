@@ -25,6 +25,14 @@
                    value="{{ form.max_participants.value|default_if_none:100 }}" min="1">
         </div>
 
+        <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="id_enable_tasks" name="enable_tasks"
+                   {% if form.enable_tasks.value or form.instance.enable_tasks %}checked{% endif %}>
+            <label class="form-check-label" for="id_enable_tasks">
+                Включить конкурсы и задания
+            </label>
+        </div>
+
         <div class="mb-3">
             <label for="image" class="form-label">Изображение</label>
             <input type="file" class="form-control" id="image" name="image" onchange="previewImage(event)">

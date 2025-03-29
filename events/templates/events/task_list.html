@@ -1,0 +1,47 @@
+{% extends 'events/base.html' %}
+{% block title %}Задания мероприятия{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>🎯 Задания для "{{ event.title }}"</h2>
+
+    <a href="{% url 'task-create' event.id %}" class="btn btn-primary mb-3">➕ Добавить задание</a>
+    <a href="{% url 'event-detail' event.id %}" class="btn btn-secondary mb-3">← Назад к мероприятию</a>
+
+    {% if tasks %}
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Название</th>
+                    <th>Тип</th>
+                    <th>Награда</th>
+                    <th>Статус</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td>{{ task.title }}</td>
+                    <td>{{ task.get_type_display }}</td>
+                    <td>{{ task.reward }} ₽</td>
+                    <td>
+                        {% if task.is_active %}
+                            <span class="badge bg-success">Активно</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Выключено</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'task-edit' task.id %}" class="btn btn-sm btn-warning">✏️</a>
+                        <a href="{% url 'task-delete' task.id %}" class="btn btn-sm btn-danger">🗑️</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Задания пока не добавлены.</p>
+    {% endif %}
+</div>
+{% endblock %}

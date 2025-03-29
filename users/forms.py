@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
+from .models import BonusTask
 
 User = get_user_model()
 
@@ -23,3 +24,21 @@ class LoginForm(AuthenticationForm):
         label="Пароль",
         widget=forms.PasswordInput(attrs={"class": "form-control"})
     )
+
+
+class BonusTaskForm(forms.ModelForm):
+    class Meta:
+        model = BonusTask
+        fields = ['name', 'description', 'type', 'code', 'reward', 'is_active']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'code': forms.TextInput(attrs={'placeholder': 'Кодовое слово'}),
+            'reward': forms.NumberInput(attrs={'min': 1}),
+        }
+
+    def clean_code(self):
+        task_type = self.cleaned_data.get('type')
+        code = self.cleaned_data.get('code')
+        if task_type == 'code' and not code:
+            raise forms.ValidationError("Для задания с типом 'код' необходимо ввести код.")
+        return code

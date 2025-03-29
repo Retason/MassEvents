@@ -1,0 +1,57 @@
+{% extends 'events/base.html' %}
+
+{% block title %}
+    {% if is_edit %}Редактирование{% else %}Создание{% endif %} бонусного задания
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>{% if is_edit %}✏️ Редактирование{% else %}➕ Создание{% endif %} бонусного задания</h2>
+
+    {% if event %}
+        <div class="alert alert-info">
+            Задание будет привязано к мероприятию: <strong>{{ event.title }}</strong>
+        </div>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label for="id_name" class="form-label">Название:</label>
+            {{ form.name }}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_description" class="form-label">Описание:</label>
+            {{ form.description }}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_reward" class="form-label">Награда (₽):</label>
+            {{ form.reward }}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_type" class="form-label">Тип задания:</label>
+            {{ form.type }}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_code" class="form-label">Кодовое слово (если нужно):</label>
+            {{ form.code }}
+        </div>
+
+        <div class="form-check mb-3">
+            {{ form.is_active }}
+            <label class="form-check-label" for="id_is_active">Активно</label>
+        </div>
+
+        <button type="submit" class="btn btn-success">
+            {% if is_edit %}💾 Сохранить{% else %}➕ Создать{% endif %}
+        </button>
+
+        <a href="{% if event %}{% url 'event-bonus-tasks' event.id %}{% else %}{% url 'manage_bonus_tasks' %}{% endif %}" class="btn btn-secondary">Отмена</a>
+    </form>
+</div>
+{% endblock %}

@@ -13,8 +13,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Подключаем jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap JS Bundle с Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Подключаем Moment.js -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
@@ -35,32 +35,44 @@
             <a class="navbar-brand" href="{% url 'event-list' %}">Мероприятия</a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
-                aria-controls="navbarNav" aria-expanded="false" aria-label="Переключить навигацию">
+                    aria-controls="navbarNav" aria-expanded="false" aria-label="Переключить навигацию">
                 <span class="navbar-toggler-icon"></span>
             </button>
 
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
-                        <li class="nav-item">
-                            <span class="navbar-text text-white me-3">Привет, {{ user.username }}!</span>
-                        </li>
-
-                        <!-- Верхняя кнопка "Создать мероприятие" теперь будет скрыта на странице списка мероприятий -->
-                        {% if user.role == "admin" or user.role == "organizer" and request.resolver_match.url_name != "event-list" %}
-                            <li class="nav-item">
-                                <a href="{% url 'event-create' %}" class="btn btn-primary me-2">Создать мероприятие</a>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
+                                    👤 {{ user.username }} | 💰 {{ user.balance|default:0 }} ₽
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    {% if user.is_admin %}
+                                        <li><a class="dropdown-item" href="{% url 'admin-dashboard' %}">⚙️ Админ-панель</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    {% endif %}
+                                    {% if user.role == "admin" or user.role == "organizer" %}
+                                        <li><a class="dropdown-item" href="{% url 'my-events' %}">📋 Мои мероприятия</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'event-create' %}">➕ Создать мероприятие</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    {% endif %}
+                                    <li><a class="dropdown-item" href="{% url 'wallet' %}">💼 Кошелёк</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'wallet-history' %}">📜 История операций</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'leaderboard' %}">🏆 Рейтинг</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'prize-catalog' %}">🎁 Каталог призов</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'my-prizes' %}">🎁 Мои призы</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'available-bonus-tasks' %}">🎯 Мои задания</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'user-profile' %}">⚙️ Профиль</a></li>
+                                    <li>
+                                        <form method="post" action="{% url 'logout' %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="dropdown-item text-danger">🚪 Выйти</button>
+                                        </form>
+                                    </li>
+                                </ul>
                             </li>
-                        {% endif %}
-
-
-                        <li class="nav-item">
-                            <form id="logout-form" method="post" action="{% url 'logout' %}" class="d-inline">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-danger">Выйти</button>
-                            </form>
-                        </li>
-                    {% else %}
+                        {% else %}
                         <li class="nav-item">
                             <a href="{% url 'login' %}" class="btn btn-success me-2">Войти</a>
                         </li>

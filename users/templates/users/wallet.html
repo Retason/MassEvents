@@ -1,0 +1,62 @@
+{% extends 'events/base.html' %}
+
+{% block title %}Мой кошелёк{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Мой кошелёк</h2>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>Текущий баланс:</h5>
+            <p class="fs-4 text-success"><strong>{{ balance }} ₽</strong></p>
+
+            <form method="post" class="mt-3">
+                {% csrf_token %}
+                <div class="input-group">
+                    <input type="number" step="0.01" name="amount" class="form-control" placeholder="Введите сумму" required>
+                    <button type="submit" class="btn btn-primary">Пополнить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <h4>История операций:</h4>
+    {% if transactions %}
+        <table class="table table-bordered table-striped mt-3">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Тип</th>
+                    <th>Описание</th>
+                    <th>Сумма</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tx in transactions %}
+                    <tr>
+                        <td>{{ tx.created_at|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            {% if tx.type == 'income' %}
+                                <span class="text-success">Пополнение</span>
+                            {% else %}
+                                <span class="text-danger">Списание</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ tx.description }}</td>
+                        <td>
+                            {% if tx.type == 'income' %}
+                                +{{ tx.amount }} ₽
+                            {% else %}
+                                -{{ tx.amount }} ₽
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Пока нет операций.</p>
+    {% endif %}
+</div>
+{% endblock %}

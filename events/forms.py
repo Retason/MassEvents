@@ -1,17 +1,21 @@
 from django import forms
 from django.utils.timezone import is_naive, make_aware, now
-from .models import Event, EventStage
+from .models import Event, EventStage, EventTask
 from datetime import datetime
 
 
 class EventForm(forms.ModelForm):
     class Meta:
         model = Event
-        fields = ['title', 'description', 'location', 'start_time', 'end_time', 'max_participants', 'image', 'registration_closed']
+        fields = [
+            'title', 'description', 'location', 'start_time', 'end_time',
+            'max_participants', 'image', 'registration_closed', 'enable_tasks'
+        ]
         widgets = {
             'start_time': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_start_time'}),
             'end_time': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_end_time'}),
         }
+
 
     def clean_start_time(self):
         """Обрабатываем дату начала"""
@@ -46,3 +50,21 @@ class EventStageForm(forms.ModelForm):
             'start_time': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_start_time'}),
             'end_time': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_end_time'}),
         }
+
+
+class EventTaskForm(forms.ModelForm):
+    class Meta:
+        model = EventTask
+        fields = ['title', 'description', 'type', 'code', 'reward', 'is_active']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3}),
+            'code': forms.TextInput(attrs={'placeholder': 'Кодовое слово или правильный ответ'}),
+            'reward': forms.NumberInput(attrs={'min': 1}),
+        }
+
+    def clean_code(self):
+        task_type = self.cleaned_data.get('type')
+        code = self.cleaned_data.get('code')
+        if task_type in ['code', 'question'] and not code:
+            raise forms.ValidationError("Необходимо указать код или ответ.")
+        return code
