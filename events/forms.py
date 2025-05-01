@@ -16,9 +16,7 @@ class EventForm(forms.ModelForm):
             'end_time': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_end_time'}),
         }
 
-
     def clean_start_time(self):
-        """Обрабатываем дату начала"""
         start_time = self.cleaned_data.get('start_time')
 
         if isinstance(start_time, str):
@@ -30,7 +28,6 @@ class EventForm(forms.ModelForm):
         return start_time
 
     def clean_end_time(self):
-        """Обрабатываем дату окончания"""
         end_time = self.cleaned_data.get('end_time')
 
         if isinstance(end_time, str):

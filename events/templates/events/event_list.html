@@ -4,73 +4,62 @@
 {% block title %}Список мероприятий{% endblock %}
 
 {% block content %}
-    <h2 class="mb-3">Мероприятия</h2>
+    <h2>Мероприятия</h2>
 
-    <!-- Форма фильтрации и поиска -->
-    <form method="GET" class="mb-4 row">
-        <div class="col-md-4">
-            <input type="text" name="search" class="form-control" placeholder="Поиск по названию"
-                   value="{{ request.GET.search }}">
-        </div>
-        <div class="col-md-3">
-            <input type="date" name="date" class="form-control" value="{{ request.GET.date }}">
-        </div>
-        <div class="col-md-3">
-            <select name="status" class="form-select">
-                <option value="">Все статусы</option>
-                <option value="open" {% if request.GET.status == "open" %}selected{% endif %}>Открыта регистрация</option>
-                <option value="closed" {% if request.GET.status == "closed" %}selected{% endif %}>Регистрация закрыта</option>
-                <option value="finished" {% if request.GET.status == "finished" %}selected{% endif %}>Завершено</option>
-            </select>
-        </div>
-        <div class="col-md-2">
-            <button type="submit" class="btn btn-primary w-100">Фильтровать</button>
-        </div>
+    <form method="GET" class="filter-form">
+        <input type="text" name="search" placeholder="Поиск..." value="{{ search_query }}">
+        <input type="date" name="date" value="{{ date_filter }}">
+        <input type="text" name="location" placeholder="Город" value="{{ location_filter }}">
+        <select name="status">
+            <option value="">Все статусы</option>
+            <option value="open" {% if status_filter == "open" %}selected{% endif %}>Открыта</option>
+            <option value="closed" {% if status_filter == "closed" %}selected{% endif %}>Закрыта</option>
+            <option value="finished" {% if status_filter == "finished" %}selected{% endif %}>Завершено</option>
+        </select>
+        <label>
+            <input type="checkbox" name="only_my" {% if only_my %}checked{% endif %}>
+            Только мои
+        </label>
+        <button type="submit">Поиск</button>
     </form>
 
-    {% if user.is_authenticated and user.role in "admin organizer" %}
-        <a href="{% url 'event-create' %}" class="btn btn-success mb-3">Создать мероприятие</a>
+    {% if user.is_authenticated %}
+        {% if user.role == "admin" or user.role == "organizer" or user.is_superuser %}
+            <a href="{% url 'event-create' %}" class="btn-create">
+                <i data-lucide="plus" class="icon"></i> Создать мероприятие
+            </a>
+        {% endif %}
     {% endif %}
 
-    <div class="row">
+    <div class="card-grid">
         {% for event in events %}
-            <div class="col-md-4">
-                <a href="{% url 'event-detail' event.id %}" class="event-card-link">
-                    <div class="card mb-3 event-card d-flex flex-column h-100 border-0 shadow">
-                        {% if event.image %}
-                            <img src="{{ event.image.url }}" class="event-banner" alt="Изображение мероприятия">
-                        {% else %}
-                            <img src="{% static 'images/default.jpg' %}" class="event-banner" alt="Нет изображения">
-                        {% endif %}
-                        <div class="card-body">
-                            <h5 class="card-title">{{ event.title }}</h5>
-
-                            <p class="card-text event-date">
-                                <strong>Дата:</strong> {{ event.start_time|date:"d.m.Y H:i" }}
-                            </p>
-
-                            <p class="card-text event-location">
-                                <strong>Место:</strong> {{ event.location }}
-                            </p>
-
-                            <p class="card-text">
-                                <strong>Участники:</strong> {{ event.eventregistration_set.count }}/{{ event.max_participants }}
-                            </p>
-
-                            <!-- Бейдж статуса -->
+            <a href="{% url 'event-detail' event.id %}" class="event-card-link">
+                <div class="event-card">
+                    {% if event.image %}
+                        <img src="{{ event.image.url }}" class="event-banner" alt="Изображение мероприятия">
+                    {% else %}
+                        <img src="{% static 'images/default.jpg' %}" class="event-banner" alt="Нет изображения">
+                    {% endif %}
+                    <div class="card-body">
+                        <div class="card-title">{{ event.title }}</div>
+                        <div class="card-line"><i data-lucide="clock" class="icon"></i> {{ event.start_time|date:"d.m.Y H:i" }}</div>
+                        <div class="card-line"><i data-lucide="map-pin" class="icon"></i> {{ event.location }}</div>
+                        <div class="card-spacer"></div>
+                        <div class="card-line"><i data-lucide="users" class="icon"></i> {{ event.eventregistration_set.count }}/{{ event.max_participants }}</div>
+                        <div class="card-line">
                             {% if event.registration_closed %}
-                                <span class="badge bg-danger">Регистрация закрыта</span>
+                                <span class="badge badge-red"><i data-lucide="x-circle" class="icon"></i> Регистрация закрыта</span>
                             {% elif event.start_time < now %}
-                                <span class="badge bg-secondary">Завершено</span>
+                                <span class="badge badge-gray"><i data-lucide="x-circle" class="icon"></i> Завершено</span>
                             {% else %}
-                                <span class="badge bg-success">Регистрация открыта</span>
+                                <span class="badge badge-green"><i data-lucide="check-circle" class="icon"></i> Регистрация открыта</span>
                             {% endif %}
                         </div>
                     </div>
-                </a>
-            </div>
+                </div>
+            </a>
         {% empty %}
-            <p>Нет предстоящих мероприятий.</p>
+            <p>Нет мероприятий.</p>
         {% endfor %}
     </div>
 {% endblock %}

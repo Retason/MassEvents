@@ -7,13 +7,15 @@
 
 {% block content %}
 <div class="container">
-    <h2>{% if is_edit %}✏️ Редактирование{% else %}➕ Добавление{% endif %} задания для "{{ event.title }}"</h2>
+    <h2 class="section-title">{% if is_edit %}️ Редактирование{% else %} Добавление{% endif %} задания для "{{ event.title }}"</h2>
 
-    <form method="post">
+    <form class="fade-in" method="post">
         {% csrf_token %}
         {% bootstrap_form form %}
-        <button type="submit" class="btn btn-success">{% if is_edit %}Сохранить{% else %}Создать{% endif %}</button>
-        <a href="{% url 'task-list' event.id %}" class="btn btn-secondary">Отмена</a>
+        <div class="d-flex gap-2 mt-3 flex-wrap">
+            <button type="submit" class="btn btn-green">{% if is_edit %}Сохранить{% else %}Создать{% endif %}</button>
+            <a href="{% url 'task-list' event.id %}" class="btn btn-outline">Отмена</a>
+        </div>
     </form>
 </div>
 {% endblock %}

@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block title %}Активировать бонус-код{% endblock %}
 {% block content %}
-<h2>🎁 Ввести бонус-код</h2>
-<form method="post">
+<h2 class="section-title"> Ввести бонус-код</h2>
+<form class="fade-in" method="post">
     {% csrf_token %}
-    <div class="mb-3">
-        <label for="code" class="form-label">Введите код:</label>
-        <input type="text" class="form-control" name="code" id="code" required>
+    <div class="card-block">
+        <label for="code" class="label">Введите код:</label>
+        <input type="text" class="input" name="code" id="code" required>
     </div>
-    <button type="submit" class="btn btn-primary">Активировать</button>
+    <button type="submit" class="btn btn-orange">Активировать</button>
 </form>
 {% endblock %}

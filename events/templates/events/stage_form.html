@@ -1,75 +1,18 @@
 {% extends 'events/base.html' %}
+{% load django_bootstrap5 %}
 
-{% block title %}{% if is_edit %}Редактировать{% else %}Добавить{% endif %} этап{% endblock %}
+{% block title %}{% if is_edit %}Редактировать этап{% else %}Добавить этап{% endif %}{% endblock %}
 
 {% block content %}
-<div class="container">
-    <h2>{% if is_edit %}Редактирование{% else %}Добавление{% endif %} этапа в "{{ event.title }}"</h2>
+<h2 class="section-title">{% if is_edit %}Редактировать этап{% else %}Добавить этап{% endif %}</h2>
+<form class="fade-in" method="post">
+    {% csrf_token %}
 
-    <form method="post">
-        {% csrf_token %}
-
-        <div class="mb-3">
-            <label for="id_title" class="form-label">Название этапа</label>
-            <input type="text" class="form-control" id="id_title" name="title" value="{{ form.title.value|default_if_none:'' }}" required>
-        </div>
-
-        <div class="mb-3">
-            <label for="id_description" class="form-label">Описание</label>
-            <textarea class="form-control" id="id_description" name="description">{{ form.description.value|default_if_none:'' }}</textarea>
-        </div>
-
-        <div class="mb-3">
-            <label for="id_start_time" class="form-label">Дата и время начала</label>
-            <div class="input-group" id="startTimePicker" data-td-target-input="nearest">
-                <input type="text" class="form-control" id="id_start_time" name="start_time" value="{{ form.start_time.value|default_if_none:'' }}" data-td-target="#startTimePicker">
-                <button class="btn btn-outline-secondary" type="button" id="startTimeButton" data-td-target="#startTimePicker" data-td-toggle="datetimepicker">
-                    <i class="bi bi-calendar"></i>
-                </button>
-            </div>
-        </div>
-
-        <div class="mb-3">
-            <label for="id_end_time" class="form-label">Дата и время окончания</label>
-            <div class="input-group" id="endTimePicker" data-td-target-input="nearest">
-                <input type="text" class="form-control" id="id_end_time" name="end_time" value="{{ form.end_time.value|default_if_none:'' }}" data-td-target="#endTimePicker">
-                <button class="btn btn-outline-secondary" type="button" id="endTimeButton" data-td-target="#endTimePicker" data-td-toggle="datetimepicker">
-                    <i class="bi bi-calendar"></i>
-                </button>
-            </div>
-        </div>
-
-        <button type="submit" class="btn btn-success">Сохранить</button>
-        <a href="{% url 'event-detail' event.id %}" class="btn btn-secondary">Отмена</a>
-    </form>
-</div>
-{% endblock %}
-
-{% block extra_scripts %}
-<!-- Подключаем Tempus Dominus -->
-<script src="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.3/dist/js/tempus-dominus.min.js"></script>
-
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const startElement = document.getElementById('startTimePicker');
-        const endElement = document.getElementById('endTimePicker');
-
-        if (typeof tempusDominus !== 'undefined' && startElement && endElement) {
-            window.startTimePicker = new tempusDominus.TempusDominus(startElement, {
-                localization: { locale: 'ru', format: 'dd.MM.yyyy HH:mm' },
-                display: { components: { calendar: true, clock: true } }
-            });
-
-            window.endTimePicker = new tempusDominus.TempusDominus(endElement, {
-                localization: { locale: 'ru', format: 'dd.MM.yyyy HH:mm' },
-                display: { components: { calendar: true, clock: true } }
-            });
-
-            document.getElementById('startTimeButton').addEventListener('click', () => startTimePicker.show());
-            document.getElementById('endTimeButton').addEventListener('click', () => endTimePicker.show());
-        } else {
-            console.error("Tempus Dominus не найден или элементы не обнаружены.");
-        }
-    });
-</script>
+    <div class="form-group-floating"><input class="input" id="title" name="title" placeholder=" " required="" type="text" value="{{ form.title.value|default_if_none:'' }}"/><label class="label" for="title">Название этапа</label></div>
+<div class="form-group-floating"><textarea class="input" id="description" name="description" placeholder=" ">{{ form.description.value|default_if_none:'' }}</textarea><label class="label" for="description">Описание</label></div>
+<div class="form-group-floating"><input class="input" id="start_time" name="start_time" placeholder=" " type="text" value="{{ form.start_time.value|default_if_none:'' }}"/><label class="label" for="start_time">Дата и время начала</label></div>
+<div class="form-group-floating"><input class="input" id="end_time" name="end_time" placeholder=" " type="text" value="{{ form.end_time.value|default_if_none:'' }}"/><label class="label" for="end_time">Дата и время окончания</label></div>
+<button class="btn btn-green" type="submit">{% if is_edit %}Сохранить изменения{% else %}Добавить этап{% endif %}</button>
+<a class="btn btn-outline" href="{% url 'event-detail' event.id %}">Отмена</a>
+</form>
 {% endblock %}

@@ -13,15 +13,16 @@ from django.utils.timezone import now
 
 
 def event_list(request):
-    """Выводит список всех мероприятий с возможностью фильтрации"""
-    Event.close_expired_registrations()  # Закрываем просроченные регистрации
+    Event.close_expired_registrations()
 
     events = Event.objects.all()
     search_query = request.GET.get('search', '')
     date_filter = request.GET.get('date', '')
     status_filter = request.GET.get('status', '')
+    location_filter = request.GET.get('location', '')
+    only_my = request.GET.get('only_my') == 'on'
 
-    # Фильтрация по названию
+    # Поиск по названию
     if search_query:
         events = events.filter(title__icontains=search_query)
 
@@ -37,7 +38,23 @@ def event_list(request):
     elif status_filter == 'finished':
         events = events.filter(start_time__lt=now())
 
-    return render(request, 'events/event_list.html', {'events': events})
+    # Фильтрация по городу/локации
+    if location_filter:
+        events = events.filter(location__icontains=location_filter)
+
+    # Только мои мероприятия
+    if only_my and request.user.is_authenticated:
+        registered_ids = EventRegistration.objects.filter(user=request.user).values_list('event_id', flat=True)
+        events = events.filter(id__in=registered_ids)
+
+    return render(request, 'events/event_list.html', {
+        'events': events,
+        'search_query': search_query,
+        'date_filter': date_filter,
+        'status_filter': status_filter,
+        'location_filter': location_filter,
+        'only_my': only_my,
+    })
 
 
 def event_detail(request, pk):
@@ -66,8 +83,6 @@ def event_detail(request, pk):
 
 @login_required
 def event_create(request):
-    """Создаёт новое мероприятие (только для организаторов и админов)."""
-
     if not (request.user.is_superuser or request.user.role in ['admin', 'organizer']):
         messages.error(request, "У вас нет прав на создание мероприятия.")
         return redirect('event-list')
@@ -77,7 +92,7 @@ def event_create(request):
         files_data = request.FILES
 
         print("Данные из формы:", post_data)
-        print("Загруженные файлы:", request.FILES)  # Проверяем, загружается ли файл
+        print("Загруженные файлы:", request.FILES)
 
         # Пробуем конвертировать дату
         try:
@@ -115,7 +130,6 @@ def event_create(request):
 
 @login_required
 def event_edit(request, pk):
-    """Редактирование мероприятия (только для организатора или админа)."""
     event = get_object_or_404(Event, pk=pk)
 
     # Разрешаем редактирование только организатору мероприятия или админу
@@ -164,7 +178,6 @@ def event_edit(request, pk):
 
 @login_required
 def event_delete(request, pk):
-    """Удаляет мероприятие (только для организатора или админа)."""
     event = get_object_or_404(Event, pk=pk)
 
     # Разрешаем удаление только организатору мероприятия или админу

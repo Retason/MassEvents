@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="container">
-    <h2>🎯 Задания для "{{ event.title }}"</h2>
+    <h2>Задания для "{{ event.title }}"</h2>
     <a href="{% url 'event-detail' event.id %}" class="btn btn-secondary mb-3">← Назад к мероприятию</a>
 
     {% if event_tasks or bonus_tasks %}
@@ -19,7 +19,7 @@
                             <small>{{ task.description }}</small>
                         </div>
                         {% if task.id in completed_event_task_ids %}
-                            <span class="badge bg-success">✅ Выполнено</span>
+                            <span class="badge bg-success"> Выполнено</span>
                         {% else %}
                             <form method="post" action="{% url 'complete-event-task' task.id %}">
                                 {% csrf_token %}
@@ -32,7 +32,7 @@
         {% endif %}
 
         {% if bonus_tasks %}
-            <h4>🎁 Бонусные задания</h4>
+            <h2>Бонусные задания</h2>
             <ul class="list-group mb-4">
                 {% for task in bonus_tasks %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -44,7 +44,7 @@
                             {% endif %}
                         </div>
                         {% if task.id in completed_bonus_task_ids %}
-                            <span class="badge bg-success">✅ Выполнено</span>
+                            <span class="badge bg-success"> Выполнено</span>
                         {% else %}
                             <form method="post" action="{% url 'complete-bonus-task' task.id %}">
                                 {% csrf_token %}

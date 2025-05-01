@@ -1,4 +1,12 @@
-"venv/" 
-"__pycache__/" 
-"*.sqlite3" 
-".env" 
+venv/
+__pycache__/
+*.py[cod]
+*.pyo
+*.sqlite3
+.env
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+/media/
+staticfiles/

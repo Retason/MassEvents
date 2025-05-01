@@ -4,24 +4,24 @@
 {% block title %}Доступные задания{% endblock %}
 
 {% block content %}
-<h2 class="mb-4">🎯 Доступные задания</h2>
+<h2 class="mb-4">Доступные задания</h2>
 
 {% if tasks %}
-    <div class="row row-cols-1 row-cols-md-2 g-4">
+    <div class="card-grid">
         {% for task in tasks %}
-        <div class="col">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h5 class="card-title">{{ task.name }}</h5>
-                    <p class="card-text">{{ task.description }}</p>
-                    <p><strong>Награда:</strong> 💰 {{ task.reward }} ₽</p>
+        <div class="event-card">
+<div class="card h-100">
+<div class="card-body">
+<div class="card-title">{{ task.name }}</div>
+<p class="card-text">{{ task.description }}</p>
+<p class="card-text"><strong>Награда:</strong> 💰 {{ task.reward }} ₽</p>
                     {% if task.code %}
                         <p><strong>Код:</strong> {{ task.code }}</p>
-                        <img src="{{ task|generate_task_qr }}" alt="QR Code">
+<img alt="QR Code" src="{{ task|generate_task_qr }}" style="max-width: 120px; margin-top: 10px; border-radius: 8px;"/>
                     {% endif %}
                 </div>
-            </div>
-        </div>
+</div>
+</div>
         {% endfor %}
     </div>
 {% else %}

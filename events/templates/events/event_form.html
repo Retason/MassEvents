@@ -4,262 +4,73 @@
 {% block title %}{% if is_edit %}Редактировать мероприятие{% else %}Создать мероприятие{% endif %}{% endblock %}
 
 {% block content %}
-    <h2>{% if is_edit %}Редактировать мероприятие{% else %}Создать мероприятие{% endif %}</h2>
+<div class="form-card">
+<h2 class="section-title">{% if is_edit %}Редактировать мероприятие{% else %}Создать мероприятие{% endif %}</h2>
 
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
+<form class="fade-in" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
 
-        <div class="mb-3">
-            <label for="title" class="form-label">Название</label>
-            <input type="text" class="form-control" id="title" name="title" value="{{ form.title.value|default_if_none:'' }}" required>
-        </div>
+    <h3 class="section-title"><i data-lucide="edit-3" class="icon"></i> Основная информация</h3>
 
-        <div class="mb-3">
-            <label for="description" class="form-label">Описание</label>
-            <textarea class="form-control" id="description" name="description">{{ form.description.value|default_if_none:'' }}</textarea>
-        </div>
+    <div class="form-group-floating">
+        <input type="text" class="input" placeholder=" " id="title" name="title" value="{{ form.title.value|default_if_none:'' }}" required>
+        <label for="title">Название</label>
+    </div>
 
-        <div class="mb-3">
-            <label for="max_participants" class="form-label">Максимальное количество участников</label>
-            <input type="number" class="form-control" id="max_participants" name="max_participants"
-                   value="{{ form.max_participants.value|default_if_none:100 }}" min="1">
-        </div>
+    <div class="form-group-floating">
+        <textarea class="input" placeholder=" " id="description" name="description">{{ form.description.value|default_if_none:"" }}</textarea>
+        <label for="description">Описание</label>
+    </div>
 
-        <div class="form-check mb-3">
-            <input type="checkbox" class="form-check-input" id="id_enable_tasks" name="enable_tasks"
-                   {% if form.enable_tasks.value or form.instance.enable_tasks %}checked{% endif %}>
-            <label class="form-check-label" for="id_enable_tasks">
-                Включить конкурсы и задания
-            </label>
-        </div>
+    <div class="form-group-floating">
+        <input type="number" class="input" placeholder=" " id="max_participants" name="max_participants"
+               value="{{ form.max_participants.value|default_if_none:100 }}" min="1">
+        <label for="max_participants">Максимум участников</label>
+    </div>
 
-        <div class="mb-3">
-            <label for="image" class="form-label">Изображение</label>
-            <input type="file" class="form-control" id="image" name="image" onchange="previewImage(event)">
+    <div class="form-check mb-3" style="margin-top: -10px;">
+        <input type="checkbox" class="input" id="id_enable_tasks" name="enable_tasks"
+               {% if form.enable_tasks.value or form.instance.enable_tasks %}checked{% endif %}>
+        <label class="label" for="id_enable_tasks">Включить конкурсы и задания</label>
+    </div>
 
-            {% if is_edit and form.instance.image %}
-                <p>Текущее изображение:</p>
-                <img id="current-image" src="{{ form.instance.image.url }}" class="event-edit-banner" alt="Текущее изображение">
-            {% endif %}
+    <h3 class="section-title"><i data-lucide="image" class="icon"></i> Изображение</h3>
+    <div class="form-group-floating">
+        <input type="file" class="input" id="image" name="image" onchange="previewImage(event)">
+        <label for="image">Выберите изображение</label>
+        <img id="preview" style="display:none; max-width: 100%; margin-top: 10px;" />
+    </div>
 
-            <img id="preview" src="#" class="event-edit-banner" alt="Предпросмотр" style="display: none; margin-top: 10px;">
-        </div>
+    <h3 class="section-title"><i data-lucide="map-pin" class="icon"></i> Местоположение</h3>
+    <div class="form-group-floating">
+        <input type="text" class="input" placeholder=" " id="location" name="location" value="{{ form.location.value|default_if_none:'' }}">
+        <label for="location">Место</label>
+    </div>
 
-        <div class="mb-3">
-            <label for="location" class="form-label">Место</label>
-            <input type="text" class="form-control" id="location" name="location" value="{{ form.location.value|default_if_none:'' }}">
-        </div>
+    <div class="card-block">
+        <label for="map" class="label">Выберите место на карте (перетащите маркер или кликните)</label>
+        <div id="map" style="width: 100%; height: 400px; border-radius: 8px;"></div>
+    </div>
 
-        <div class="mb-3">
-            <label for="map" class="form-label">Выберите место на карте</label>
-            <div id="map" style="width: 100%; height: 400px;"></div>
-        </div>
+    <input type="hidden" id="latitude" name="latitude" value="{{ form.latitude.value|default:form.instance.latitude|default:'' }}">
+    <input type="hidden" id="longitude" name="longitude" value="{{ form.longitude.value|default:form.instance.longitude|default:'' }}">
 
-        <!-- Скрытые поля для широты и долготы -->
-        <input type="hidden" id="latitude" name="latitude" value="{{ form.latitude.value|default:form.instance.latitude|default:'' }}">
-        <input type="hidden" id="longitude" name="longitude" value="{{ form.longitude.value|default:form.instance.longitude|default:'' }}">
+    <h3 class="section-title"><i data-lucide="calendar" class="icon"></i> Время проведения</h3>
 
-        <div class="mb-3">
-            <label for="start_time" class="form-label">Дата и время начала</label>
-            <div class="input-group" id="startTimePicker">
-                <input type="text" class="form-control datetimepicker-input" id="start_time" name="start_time"
-                       value="{{ form.instance.start_time|date:'d.m.Y, H:i' }}"
-                       data-td-target="#startTimePicker">
-                    <i class="bi bi-calendar"></i>
-                </button>
-            </div>
-        </div>
+    <div class="form-group-floating">
+        <input type="text" class="input" id="start_time" name="start_time" placeholder=" " value="{{ form.instance.start_time|date:'d.m.Y, H:i' }}">
+        <label for="start_time">Дата и время начала</label>
+    </div>
 
-        <div class="mb-3">
-            <label for="end_time" class="form-label">Дата и время окончания</label>
-            <div class="input-group" id="endTimePicker">
-                <input type="text" class="form-control datetimepicker-input" id="end_time" name="end_time"
-                       value="{{ form.instance.end_time|date:'d.m.Y, H:i' }}"
-                       data-td-target="#endTimePicker">
-                    <i class="bi bi-calendar"></i>
-                </button>
-            </div>
-        </div>
+    <div class="form-group-floating">
+        <input type="text" class="input" id="end_time" name="end_time" placeholder=" " value="{{ form.instance.end_time|date:'d.m.Y, H:i' }}">
+        <label for="end_time">Дата и время окончания</label>
+    </div>
 
-        <button type="submit" class="btn btn-success">{% if is_edit %}Сохранить изменения{% else %}Сохранить{% endif %}</button>
-        <a href="{% url 'event-list' %}" class="btn btn-secondary">Отмена</a>
-    </form>
-{% endblock %}
-
-{% block extra_scripts %}
-<!-- Подключаем Tempus Dominus -->
-<script src="https://cdn.jsdelivr.net/npm/@eonasdan/tempus-dominus@6.9.3/dist/js/tempus-dominus.min.js"></script>
-
-<!-- Подключаем Яндекс.Карты -->
-<script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU"></script>
-<script src="https://api-maps.yandex.ru/2.1/?apikey=04438d2d-1657-4bb6-a0f3-1d024fffe696&lang=ru_RU"></script>
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        console.log("Tempus Dominus загружен?", typeof tempusDominus);
-
-        if (typeof tempusDominus === 'undefined') {
-            console.error("Tempus Dominus не найден!");
-            return;
-        }
-
-        const startElement = document.getElementById('startTimePicker');
-        const endElement = document.getElementById('endTimePicker');
-        const startInput = document.getElementById('start_time');
-        const endInput = document.getElementById('end_time');
-        const locationInput = document.getElementById('location');
-
-        if (!startElement || !endElement || !startInput || !endInput || !locationInput) {
-            console.error("Не найдены некоторые элементы формы!");
-            return;
-        }
-
-        console.log("Запуск Tempus Dominus...");
-
-        let now = new Date();
-        let minDateTime = now.toISOString().slice(0, 16).replace("T", " ");
-
-        // Устанавливаем ограничения на ввод прошедших дат
-        startInput.setAttribute("min", minDateTime);
-        endInput.setAttribute("min", minDateTime);
-
-        window.startTimePicker = new tempusDominus.TempusDominus(startElement, {
-            localization: { locale: 'ru', format: 'dd.MM.yyyy HH:mm' },
-            display: { components: { calendar: true, clock: true } },
-            restrictions: { minDate: now }
-        });
-
-        window.endTimePicker = new tempusDominus.TempusDominus(endElement, {
-            localization: { locale: 'ru', format: 'dd.MM.yyyy HH:mm' },
-            display: { components: { calendar: true, clock: true } },
-            restrictions: { minDate: now }
-        });
-
-        console.log("Tempus Dominus инициализирован!");
-
-        document.getElementById('startTimeButton').addEventListener('click', function () {
-            console.log("Кнопка календаря (start) нажата!");
-            startTimePicker.show();
-        });
-
-        document.getElementById('endTimeButton').addEventListener('click', function () {
-            console.log("Кнопка календаря (end) нажата!");
-            endTimePicker.show();
-        });
-
-        // Преобразование дат для корректного отображения в редактировании
-        startInput.value = formatDateForInput(startInput.value);
-        endInput.value = formatDateForInput(endInput.value);
-
-        // Устанавливаем зависимость: дата окончания не может быть раньше даты начала
-        startInput.addEventListener("change", function () {
-            let selectedStartTime = new Date(startInput.value.replace(/(\d{2})\.(\d{2})\.(\d{4}), (\d{2}):(\d{2})/, '$3-$2-$1T$4:$5'));
-            if (!isNaN(selectedStartTime.getTime())) {
-                endInput.setAttribute("min", selectedStartTime.toISOString().slice(0, 16).replace("T", " "));
-                window.endTimePicker.updateOptions({
-                    restrictions: { minDate: selectedStartTime }
-                });
-            }
-        });
-    });
-
-    function previewImage(event) {
-        const preview = document.getElementById('preview');
-        const currentImage = document.getElementById('current-image');
-
-        preview.src = URL.createObjectURL(event.target.files[0]);
-        preview.style.display = 'block';
-
-        if (currentImage) {
-            currentImage.style.display = 'none';  // Прячем старое изображение
-        }
-    }
-
-    function formatDateForInput(dateString) {
-        if (!dateString) return "";
-        console.log("Исходное значение даты:", dateString);
-
-        let rawDate = new Date(dateString);
-        if (isNaN(rawDate.getTime())) {
-            let parts = dateString.match(/(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
-            if (parts) {
-                rawDate = new Date(parts[1], parts[2] - 1, parts[3], parts[4], parts[5]);
-            }
-        }
-
-        if (!isNaN(rawDate.getTime())) {
-            let formattedDate = rawDate.toLocaleString("ru-RU", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit"
-            }).replace(",", "").replace(/\./g, ".");
-            console.log("Отформатированная дата:", formattedDate);
-            return formattedDate;
-        } else {
-            console.error("Ошибка преобразования даты:", dateString);
-            return "";
-        }
-    }
-
-    // Инициализируем карту Яндекса
-    ymaps.ready(init);
-
-    function init() {
-        var lat = parseFloat(document.getElementById('latitude').value) || 55.751574;
-        var lon = parseFloat(document.getElementById('longitude').value) || 37.573856;
-        var locationInput = document.getElementById('location');
-
-        var myMap = new ymaps.Map("map", {
-            center: [lat, lon],
-            zoom: 10
-        });
-
-        var placemark = new ymaps.Placemark([lat, lon], {}, { draggable: true });
-        myMap.geoObjects.add(placemark);
-
-        placemark.events.add('dragend', function () {
-            var coords = placemark.geometry.getCoordinates();
-            document.getElementById('latitude').value = coords[0].toFixed(6);
-            document.getElementById('longitude').value = coords[1].toFixed(6);
-
-            // Запрашиваем адрес по координатам
-            getAddressFromCoords(coords, locationInput);
-        });
-
-        myMap.events.add('click', function (e) {
-            var coords = e.get('coords');
-            placemark.geometry.setCoordinates(coords);
-            document.getElementById('latitude').value = coords[0].toFixed(6);
-            document.getElementById('longitude').value = coords[1].toFixed(6);
-
-            // Запрашиваем адрес по координатам
-            getAddressFromCoords(coords, locationInput);
-        });
-    }
-
-    function getAddressFromCoords(coords, locationInput) {
-        ymaps.geocode(coords, { results: 1, sco: "latlong" }).then(function (res) {
-            var firstGeoObject = res.geoObjects.get(0);
-
-            if (firstGeoObject) {
-                var address = firstGeoObject.getAddressLine();
-
-                // Принудительно обновляем поле через setTimeout + blur/focus
-                setTimeout(function() {
-                    locationInput.value = address;
-                    locationInput.blur();
-                    locationInput.focus();
-                    console.log("Определённый адрес:", address);
-                }, 200);
-            } else {
-                console.log("Адрес не найден");
-                locationInput.value = "";
-            }
-        }).catch(function (err) {
-            console.error("Ошибка при получении адреса:", err);
-            locationInput.value = "";
-        });
-    }
-</script>
+    <div class="button-group" style="margin-top: 2rem;">
+        <button type="submit" class="btn btn-green">{% if is_edit %}Сохранить изменения{% else %}Сохранить{% endif %}</button>
+        <a href="{% url 'event-list' %}" class="btn btn-outline">Отмена</a>
+    </div>
+</form>
+</div>
 {% endblock %}
