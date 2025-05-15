@@ -6,10 +6,17 @@ from users.models import WalletTransaction
 from users.forms import BonusTaskForm
 from .models import (Event, EventRegistration, EventStage, EventTask, TaskCompletion,
                      BonusTask, BonusTaskCompletion,)
-from .forms import EventForm, EventStageForm, EventTaskForm
+from .forms import EventForm, EventStageForm
 from django.contrib import messages
 from datetime import datetime
 from django.utils.timezone import now
+
+
+def parse_datetime(date_str):
+    try:
+        return datetime.strptime(date_str, "%d.%m.%Y, %H:%M").strftime("%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return None
 
 
 def event_list(request):
@@ -22,15 +29,12 @@ def event_list(request):
     location_filter = request.GET.get('location', '')
     only_my = request.GET.get('only_my') == 'on'
 
-    # Поиск по названию
     if search_query:
         events = events.filter(title__icontains=search_query)
 
-    # Фильтрация по дате
     if date_filter:
         events = events.filter(start_time__date=date_filter)
 
-    # Фильтрация по статусу
     if status_filter == 'open':
         events = events.filter(registration_closed=False, start_time__gte=now())
     elif status_filter == 'closed':
@@ -38,11 +42,9 @@ def event_list(request):
     elif status_filter == 'finished':
         events = events.filter(start_time__lt=now())
 
-    # Фильтрация по городу/локации
     if location_filter:
         events = events.filter(location__icontains=location_filter)
 
-    # Только мои мероприятия
     if only_my and request.user.is_authenticated:
         registered_ids = EventRegistration.objects.filter(user=request.user).values_list('event_id', flat=True)
         events = events.filter(id__in=registered_ids)
@@ -60,7 +62,6 @@ def event_list(request):
 def event_detail(request, pk):
     event = get_object_or_404(Event, pk=pk)
 
-    # Автоматически закрываем регистрацию перед показом страницы
     event.check_and_close_registration()
 
     is_registered = False
@@ -91,17 +92,13 @@ def event_create(request):
         post_data = request.POST.copy()
         files_data = request.FILES
 
-        print("Данные из формы:", post_data)
-        print("Загруженные файлы:", request.FILES)
-
-        # Пробуем конвертировать дату
         try:
             post_data['start_time'] = datetime.strptime(
                 post_data['start_time'], "%d.%m.%Y, %H:%M").strftime("%Y-%m-%d %H:%M:%S")
             post_data['end_time'] = datetime.strptime(
                 post_data['end_time'], "%d.%m.%Y, %H:%M").strftime("%Y-%m-%d %H:%M:%S")
         except ValueError:
-            print("Ошибка: Неверный формат даты!")
+
             messages.error(request, "Ошибка: неверный формат даты и времени!")
             return render(request, 'events/event_form.html', {'form': EventForm(post_data)})
 
@@ -111,7 +108,6 @@ def event_create(request):
             event = form.save(commit=False)
             event.organizer = request.user
 
-            # Убеждаемся, что координаты сохраняются
             event.latitude = post_data.get('latitude') or None
             event.longitude = post_data.get('longitude') or None
 
@@ -119,7 +115,7 @@ def event_create(request):
             messages.success(request, "Мероприятие успешно создано!")
             return redirect('event-list')
         else:
-            print("Ошибка формы:", form.errors)
+
             messages.error(request, f"Ошибка при создании мероприятия: {form.errors}")
 
     else:
@@ -132,7 +128,6 @@ def event_create(request):
 def event_edit(request, pk):
     event = get_object_or_404(Event, pk=pk)
 
-    # Разрешаем редактирование только организатору мероприятия или админу
     if request.user != event.organizer and not request.user.is_superuser:
         messages.error(request, "У вас нет прав для редактирования этого мероприятия.")
         return redirect('event-detail', pk=pk)
@@ -140,7 +135,6 @@ def event_edit(request, pk):
     if request.method == 'POST':
         post_data = request.POST.copy()
 
-        # Принудительно исправляем формат даты
         try:
             post_data['start_time'] = datetime.strptime(
                 post_data['start_time'], "%d.%m.%Y, %H:%M").strftime("%Y-%m-%d %H:%M:%S")
@@ -160,18 +154,14 @@ def event_edit(request, pk):
             messages.error(request, "Ошибка при обновлении мероприятия.")
 
     else:
-        # Приводим дату к правильному формату перед отображением в форме
-        formatted_start_time = event.start_time.strftime("%d.%m.%Y, %H:%M") if event.start_time else ""
-        formatted_end_time = event.end_time.strftime("%d.%m.%Y, %H:%M") if event.end_time else ""
+        formatted_start_time = event.start_time.strftime('%d.%m.%Y, %H:%M') if event.start_time else ''
+        formatted_end_time = event.end_time.strftime('%d.%m.%Y, %H:%M') if event.end_time else ''
 
         form = EventForm(instance=event, initial={
             'start_time': formatted_start_time,
             'end_time': formatted_end_time,
             'location': event.location,
         })
-
-    print("Значение start_time в форме:", formatted_start_time)
-    print("Значение end_time в форме:", formatted_end_time)
 
     return render(request, 'events/event_form.html', {'form': form, 'event': event, 'is_edit': True})
 
@@ -180,7 +170,6 @@ def event_edit(request, pk):
 def event_delete(request, pk):
     event = get_object_or_404(Event, pk=pk)
 
-    # Разрешаем удаление только организатору мероприятия или админу
     if request.user != event.organizer and not request.user.is_superuser:
         messages.error(request, "У вас нет прав на удаление этого мероприятия.")
         return redirect('event-detail', pk=pk)
@@ -233,14 +222,13 @@ def stage_create(request, event_id):
         return redirect('event-detail', pk=event_id)
 
     if request.method == "POST":
-        print("Полученные данные из формы:", request.POST)
 
         post_data = request.POST.copy()
         try:
             post_data['start_time'] = datetime.strptime(post_data['start_time'], "%d.%m.%Y, %H:%M").strftime("%Y-%m-%d %H:%M:%S")
             post_data['end_time'] = datetime.strptime(post_data['end_time'], "%d.%m.%Y, %H:%M").strftime("%Y-%m-%d %H:%M:%S")
         except ValueError:
-            print("Ошибка: неверный формат даты!")
+
             messages.error(request, "Ошибка: неверный формат даты и времени!")
             return render(request, 'events/stage_form.html', {'form': EventStageForm(request.POST), 'event': event})
 
@@ -253,7 +241,7 @@ def stage_create(request, event_id):
             messages.success(request, "Этап успешно добавлен!")
             return redirect('event-detail', pk=event_id)
         else:
-            print("Форма невалидна! Ошибки:", form.errors)
+
             messages.error(request, "Ошибка при добавлении этапа. Проверьте введённые данные.")
     else:
         form = EventStageForm()
@@ -281,7 +269,6 @@ def stage_edit(request, stage_id):
     stage = get_object_or_404(EventStage, id=stage_id)
     event = stage.event
 
-    # Проверка прав
     if request.user != event.organizer and not request.user.is_superuser:
         messages.error(request, "У вас нет прав для редактирования этого этапа.")
         return redirect('event-detail', pk=event.id)
@@ -312,7 +299,6 @@ def stage_edit(request, stage_id):
             messages.error(request, "Ошибка при обновлении этапа.")
 
     else:
-        # Прямо изменим значения в instance для корректного отображения
         stage.start_time = stage.start_time.strftime("%d.%m.%Y, %H:%M") if stage.start_time else ''
         stage.end_time = stage.end_time.strftime("%d.%m.%Y, %H:%M") if stage.end_time else ''
 
@@ -324,7 +310,6 @@ def stage_edit(request, stage_id):
         'stage': stage,
         'is_edit': True
     })
-
 
 
 @login_required
@@ -456,15 +441,12 @@ def redeem_bonus_code(request):
             messages.error(request, "Неверный или неактивный бонус-код.")
             return redirect("event-list")
 
-        # Уже выполнено?
         if BonusTaskCompletion.objects.filter(user=request.user, task=task).exists():
             messages.warning(request, "Вы уже использовали этот код.")
             return redirect("event-list")
 
-        # Добавить запись о выполнении
         BonusTaskCompletion.objects.create(user=request.user, task=task)
 
-        # Начислить награду (если используем баланс)
         request.user.balance += task.reward
         request.user.save()
 
@@ -494,7 +476,6 @@ def event_tasks_for_user(request, event_id):
     """Отображает задания для участника мероприятия"""
     event = get_object_or_404(Event, id=event_id)
 
-    # Проверка: зарегистрирован ли пользователь на мероприятие
     is_registered = EventRegistration.objects.filter(user=request.user, event=event).exists()
 
     if not is_registered and not request.user.is_superuser:
@@ -520,7 +501,6 @@ def event_tasks_for_user(request, event_id):
 def complete_event_task(request, task_id):
     task = get_object_or_404(BonusTask, id=task_id, event__isnull=False, is_active=True)
 
-    # Проверка: выполнял ли уже
     if BonusTaskCompletion.objects.filter(user=request.user, task=task).exists():
         messages.info(request, "Вы уже выполнили это задание.")
     else:
@@ -545,16 +525,13 @@ def complete_event_task(request, task_id):
 def event_user_tasks(request, event_id):
     event = get_object_or_404(Event, id=event_id)
 
-    # Проверка доступа
     if not EventRegistration.objects.filter(event=event, user=request.user).exists():
         messages.error(request, "Вы не зарегистрированы на это мероприятие.")
         return redirect('event-detail', pk=event_id)
 
-    # Активные задания
     event_tasks = EventTask.objects.filter(event=event, is_active=True)
     bonus_tasks = BonusTask.objects.filter(event=event, is_active=True)
 
-    # Выполненные задания пользователем
     completed_event_tasks = TaskCompletion.objects.filter(
         user=request.user, task__in=event_tasks
     ).values_list('task_id', flat=True)
@@ -603,7 +580,7 @@ def submit_event_task_code(request, event_id, task_id):
         description=f"Награда за задание: {task.name}"
     )
 
-    messages.success(request, f"✅ Задание «{task.name}» выполнено! +{task.reward} ₽")
+    messages.success(request, f"Задание «{task.name}» выполнено! +{task.reward} ₽")
     return redirect('event-user-tasks', event_id=event.id)
 
 
@@ -612,12 +589,10 @@ def submit_event_task_code(request, event_id, task_id):
 def complete_bonus_task(request, task_id):
     task = get_object_or_404(BonusTask, id=task_id)
 
-    # Проверка: пользователь зарегистрирован на мероприятие
     if not EventRegistration.objects.filter(user=request.user, event=task.event).exists():
         messages.error(request, "Вы не зарегистрированы на мероприятие.")
         return redirect('event-detail', pk=task.event.id)
 
-    # Проверка: активность и повторное выполнение
     if not task.is_active:
         messages.error(request, "Это задание неактивно.")
     elif BonusTaskCompletion.objects.filter(user=request.user, task=task).exists():

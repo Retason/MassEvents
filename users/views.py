@@ -17,16 +17,15 @@ from . import serializers
 from events.models import EventRegistration, BonusTaskCompletion, Event
 from .models import (
     User, WalletTransaction, BonusTask, BonusCompletion,
-    Prize, PrizeRedemption,
+    Prize, PrizeRedemption, QuizQuestion, QuizAnswer,
 )
 from .serializers import RegisterSerializer, UserSerializer
-from .forms import RegisterForm, LoginForm, BonusTaskForm
+from .forms import RegisterForm, LoginForm, BonusTaskForm, QuizQuestionFormSet
 from .utils import send_verification_email
 
 from decimal import Decimal
 
 
-# --- API Views ---
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
@@ -62,7 +61,6 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
 User = get_user_model()
 
 
-# --- Registration with bonus ---
 def register(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
@@ -73,7 +71,6 @@ def register(request):
 
             send_verification_email(user)
 
-            # 🎁 Попытка выдать бонус за регистрацию
             task = BonusTask.objects.filter(
                 type=BonusTask.SYSTEM,
                 is_active=True,
@@ -127,7 +124,6 @@ def user_login(request):
     return render(request, "users/login.html", {"form": form})
 
 
-# --- Wallet ---
 @login_required
 def wallet_view(request):
     transactions = request.user.transactions.all()
@@ -198,41 +194,45 @@ def manage_bonus_tasks(request):
 
 @login_required
 def bonus_task_create(request):
-    """Создание бонусного задания, с возможной привязкой к мероприятию."""
-    if not request.user.is_admin():
+    if not request.user.is_admin() and not request.user.is_organizer():
         messages.error(request, "Доступ запрещён.")
-        return redirect("manage_bonus_tasks")
+        return redirect("event-list")
 
-    event_id = request.GET.get("event")  # <-- Берём ID мероприятия из URL
+    event_id = request.GET.get("event")
     event = None
-
     if event_id:
         event = get_object_or_404(Event, id=event_id)
+        if not request.user.is_superuser and event.organizer != request.user:
+            messages.error(request, "У вас нет прав на добавление задания к этому мероприятию.")
+            return redirect("event-detail", pk=event.id)
 
     if request.method == "POST":
         form = BonusTaskForm(request.POST)
-        if form.is_valid():
+        question_formset = QuizQuestionFormSet(request.POST)
+        if form.is_valid() and (form.cleaned_data["type"] != "quiz" or question_formset.is_valid()):
             task = form.save(commit=False)
-
-            # Если создаём через мероприятие — привязываем
             if event:
                 task.event = event
-
             task.save()
+            if task.type == "quiz":
+                for q_form in question_formset:
+                    if q_form.cleaned_data:
+                        question = q_form.save(commit=False)
+                        question.task = task
+                        question.save()
             messages.success(request, "Бонусное задание создано!")
-
-            # Возврат к списку заданий мероприятия, если задание было привязано
             if event:
                 return redirect("event-bonus-tasks", event_id=event.id)
-
             return redirect("manage_bonus_tasks")
     else:
         form = BonusTaskForm()
+        question_formset = QuizQuestionFormSet(queryset=QuizQuestion.objects.none())
 
     return render(request, "admin/bonus_task_form.html", {
         "form": form,
         "is_edit": False,
-        "event": event  # <-- Можно использовать в шаблоне, если нужно
+        "event": event,
+        "question_formset": question_formset
     })
 
 
@@ -299,14 +299,11 @@ def redeem_prize(request, prize_id):
         messages.error(request, "Недостаточно баллов для получения приза.")
         return redirect('prize-catalog')
 
-    # Списываем баллы
     request.user.balance -= prize.cost
     request.user.save()
 
-    # Записываем факт получения
     PrizeRedemption.objects.create(user=request.user, prize=prize)
 
-    # Логируем транзакцию
     WalletTransaction.objects.create(
         user=request.user,
         type=WalletTransaction.EXPENSE,
@@ -340,12 +337,10 @@ def submit_bonus_code(request):
         messages.error(request, "Код недействителен или уже использован.")
         return redirect("user-profile")
 
-    # Проверка: не выполнял ли уже
     if BonusTaskCompletion.objects.filter(user=request.user, task=task).exists():
         messages.info(request, "Вы уже использовали этот код.")
         return redirect("user-profile")
 
-    # Начисляем бонус
     request.user.balance += task.reward
     request.user.save()
 
@@ -360,13 +355,10 @@ def available_bonus_tasks(request):
     """Список доступных заданий (глобальных и для мероприятий, на которые пользователь записан)"""
     completed_ids = BonusTaskCompletion.objects.filter(user=request.user).values_list('task_id', flat=True)
 
-    # Все мероприятия, на которые пользователь записан
     registered_event_ids = Event.objects.filter(eventregistration__user=request.user).values_list('id', flat=True)
 
-    # 1. Глобальные задания
     global_tasks = BonusTask.objects.filter(is_active=True, event__isnull=True)
 
-    # 2. Задания, привязанные к мероприятиям, на которые пользователь записан
     event_tasks = BonusTask.objects.filter(is_active=True, event_id__in=registered_event_ids)
 
     all_tasks = (global_tasks | event_tasks).distinct().order_by('-reward')
@@ -427,7 +419,6 @@ def bonus_task_public(request, code):
     already_done = BonusTaskCompletion.objects.filter(user=request.user, task=task).exists()
 
     if request.method == "POST" and not already_done:
-        # Начисляем баллы
         request.user.balance += task.reward
         request.user.save()
 
@@ -510,11 +501,9 @@ def export_task_completions_xlsx(request, task_id):
     ws = wb.active
     ws.title = "Выполнения"
 
-    # Заголовки
     headers = ["Имя пользователя", "Email", "Баланс (₽)", "Дата выполнения"]
     ws.append(headers)
 
-    # Данные
     for comp in completions:
         ws.append([
             comp.user.username,
@@ -523,12 +512,10 @@ def export_task_completions_xlsx(request, task_id):
             comp.completed_at.strftime("%d.%m.%Y %H:%M"),
         ])
 
-    # Ширина колонок
     for col_num, column_title in enumerate(headers, 1):
         column_letter = get_column_letter(col_num)
         ws.column_dimensions[column_letter].width = 20
 
-    # Ответ пользователю
     response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     filename = f"{task.name.replace(' ', '_')}_выполнения.xlsx"
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
@@ -566,7 +553,6 @@ def export_event_completions_xlsx(request, event_id):
             c.completed_at.strftime("%d.%m.%Y %H:%M"),
         ])
 
-    # Автоматическая ширина колонок
     for col_num, column_title in enumerate(headers, 1):
         ws.column_dimensions[get_column_letter(col_num)].width = 25
 
@@ -582,7 +568,6 @@ def leaderboard_view(request):
     from django.contrib.auth import get_user_model
     User = get_user_model()
 
-    # Получаем пользователей с количеством выполнений и суммой баллов
     users = User.objects.annotate(
         total_tasks=Count('bonustaskcompletion'),
         total_balance=Sum('balance')
@@ -590,4 +575,41 @@ def leaderboard_view(request):
 
     return render(request, 'users/leaderboard.html', {
         'leaders': users,
+    })
+
+@login_required
+def pass_quiz(request, task_id):
+    task = get_object_or_404(BonusTask, id=task_id, type='quiz', is_active=True)
+    questions = task.questions.all()
+
+    already_done = BonusTaskCompletion.objects.filter(user=request.user, task=task).exists()
+
+    if request.method == "POST" and not already_done:
+        correct = 0
+        for q in questions:
+            user_answer = request.POST.get(f"q_{q.id}", "").strip()
+            QuizAnswer.objects.create(user=request.user, question=q, answer=user_answer)
+            if user_answer.lower() == q.correct_answer.lower():
+                correct += 1
+
+        if correct == len(questions):
+            request.user.balance += task.reward
+            request.user.save()
+            BonusTaskCompletion.objects.create(user=request.user, task=task)
+            WalletTransaction.objects.create(
+                user=request.user,
+                amount=task.reward,
+                type=WalletTransaction.INCOME,
+                description=f"Викторина: {task.name}"
+            )
+            messages.success(request, f"Поздравляем! Вы прошли викторину и получили {task.reward}₽.")
+        else:
+            messages.warning(request, f"Викторина не пройдена. Верных ответов: {correct} из {len(questions)}.")
+
+        return redirect("user-profile")
+
+    return render(request, "users/pass_quiz.html", {
+        "task": task,
+        "questions": questions,
+        "already_done": already_done
     })

@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import BonusTask
+from .models import BonusTask, QuizQuestion
+from django.forms import modelformset_factory
 
 User = get_user_model()
 
@@ -42,3 +43,11 @@ class BonusTaskForm(forms.ModelForm):
         if task_type == 'code' and not code:
             raise forms.ValidationError("Для задания с типом 'код' необходимо ввести код.")
         return code
+
+
+QuizQuestionFormSet = modelformset_factory(
+    QuizQuestion,
+    fields=('question', 'correct_answer'),
+    extra=3,
+    widgets={'question': forms.Textarea(attrs={'rows': 2})}
+)

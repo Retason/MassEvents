@@ -96,3 +96,22 @@ class PrizeRedemption(models.Model):
 
     def __str__(self):
         return f"{self.user.username} получил {self.prize.name} — {self.redeemed_at.strftime('%d.%m.%Y %H:%M')}"
+
+
+class QuizQuestion(models.Model):
+    task = models.ForeignKey(BonusTask, on_delete=models.CASCADE, related_name="questions")
+    question = models.TextField()
+    correct_answer = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f"Вопрос: {self.question[:50]}..."
+
+
+class QuizAnswer(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    question = models.ForeignKey(QuizQuestion, on_delete=models.CASCADE)
+    answer = models.CharField(max_length=255)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'question')

@@ -16,12 +16,10 @@ urlpatterns = [
     path('<int:pk>/edit/', event_edit, name='event-edit'),
     path('<int:pk>/delete/', event_delete, name='event-delete'),
 
-    # Маршруты для этапов
     path('<int:event_id>/stages/create/', stage_create, name='stage-create'),
     path('stages/<int:stage_id>/edit/', stage_edit, name='stage-edit'),  # Новый маршрут
     path('stages/<int:stage_id>/delete/', stage_delete, name='stage-delete'),
 
-    # Регистрация на мероприятие
     path('<int:event_id>/register/', register_for_event, name='event-register'),
     path('<int:event_id>/unregister/', unregister_from_event, name='event-unregister'),
     path('events/<int:event_id>/toggle-registration/', toggle_registration, name='toggle-registration'),
@@ -29,7 +27,6 @@ urlpatterns = [
 
     path('my/', my_events, name='my-events'),
 
-    # Маршруты для заданий внутри мероприятия
     path('<int:event_id>/tasks/', task_list, name='task-list'),
     path('<int:event_id>/tasks/create/', task_create, name='task-create'),
     path('tasks/<int:task_id>/edit/', task_edit, name='task-edit'),

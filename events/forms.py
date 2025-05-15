@@ -57,6 +57,7 @@ class EventTaskForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'rows': 3}),
             'code': forms.TextInput(attrs={'placeholder': 'Кодовое слово или правильный ответ'}),
             'reward': forms.NumberInput(attrs={'min': 1}),
+            'type': forms.Select(attrs={'class': 'input'}),
         }
 
     def clean_code(self):
