@@ -1,0 +1,76 @@
+{% extends 'events/base.html' %}
+
+{% block title %}
+    {% if is_edit %}Редактирование{% else %}Создание{% endif %} бонусного задания
+{% endblock %}
+
+{% block content %}
+<div class="form-card">
+<h2 class="section-title">{% if is_edit %}Редактирование{% else %}Создание{% endif %} бонусного задания</h2>
+
+<form class="fade-in" method="post">
+    {% csrf_token %}
+
+    {% if event %}
+        <div class="info-box">
+            Задание будет привязано к мероприятию: <strong>{{ event.title }}</strong>
+        </div>
+    {% endif %}
+
+    <div class="form-group-floating">
+        <input type="text" class="input" placeholder=" " id="id_name" name="name" value="{{ form.name.value|default_if_none:'' }}" required>
+        <label for="id_name">Название</label>
+    </div>
+
+    <div class="form-group-floating">
+        <textarea class="input" placeholder=" " id="id_description" name="description">{{ form.description.value|default_if_none:"" }}</textarea>
+        <label for="id_description">Описание</label>
+    </div>
+
+    <div class="form-group-floating">
+        <input type="number" class="input" placeholder=" " id="id_reward" name="reward" value="{{ form.reward.value|default_if_none:'' }}" min="1">
+        <label for="id_reward">Награда (₽)</label>
+    </div>
+
+    <div class="form-group-floating">
+        <select name="type" id="id_type" class="input" required>
+            <option value="system" {% if form.type.value == 'system' %}selected{% endif %}>Системное задание</option>
+            <option value="code" {% if form.type.value == 'code' %}selected{% endif %}>Бонус-код</option>
+        </select>
+        <label for="id_type">Тип задания</label>
+    </div>
+
+    <div class="form-group-floating">
+        <input type="text" class="input" placeholder=" " id="id_code" name="code" value="{{ form.code.value|default_if_none:'' }}" required>
+        <label for="id_code">Кодовое слово</label>
+    </div>
+
+    <div class="form-check mb-3">
+        {{ form.is_active }}
+        <label class="label" for="id_is_active">Активно</label>
+    </div>
+
+    <div class="button-group" style="margin-top: 2rem;">
+        <button type="submit" class="btn btn-green">{% if is_edit %}Сохранить{% else %}Создать{% endif %}</button>
+        <a href="{% if event %}{% url 'event-bonus-tasks' event.id %}{% else %}{% url 'manage_bonus_tasks' %}{% endif %}" class="btn btn-outline">Отмена</a>
+    </div>
+
+    {% if form.instance.type == "quiz" %}
+        <div class="card-block">
+            <h3 class="section-title">Вопросы для викторины</h3>
+            {{ question_formset.management_form }}
+            {% for qform in question_formset %}
+                <div class="form-group-floating">
+                    {{ qform.question }}
+                    <label>{{ qform.question.label }}</label>
+                </div>
+                <div class="form-group-floating">
+                    {{ qform.correct_answer }}
+                    <label>{{ qform.correct_answer.label }}</label>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</form>
+</div>
+{% endblock %}

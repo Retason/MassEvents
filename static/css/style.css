@@ -984,7 +984,6 @@ a.btn-outline-primary:hover {
     color: var(--accent);
 }
 
-/* Убедимся, что label для select не перекрывается */
 .form-group-floating select + label {
     z-index: 1;
     background: #fff;

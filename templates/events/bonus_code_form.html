@@ -1,0 +1,18 @@
+{% extends 'events/base.html' %}
+
+{% block title %}Ввод кода задания{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Ввод кода для задания: {{ task.name }}</h2>
+    <p>{{ task.description }}</p>
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="code">Введите код:</label>
+            <input type="text" name="code" id="code" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-green mt-2">Проверить</button>
+    </form>
+</div>
+{% endblock %}

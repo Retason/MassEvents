@@ -1,0 +1,33 @@
+{% extends 'events/base.html' %}
+{% block title %}Выполнения — {{ task.name }}{% endblock %}
+
+{% block content %}
+<h2>Выполнения задания: "{{ task.name }}"</h2>
+
+{% if completions %}
+    <table class="table table-sm table-striped mt-3">
+        <thead>
+            <tr>
+                <th>Пользователь</th>
+                <th>Email</th>
+                <th>Баланс</th>
+                <th>Дата выполнения</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for comp in completions %}
+                <tr>
+                    <td>{{ comp.user.username }}</td>
+                    <td>{{ comp.user.email }}</td>
+                    <td>{{ comp.user.balance }} ₽</td>
+                    <td>{{ comp.completed_at|date:"d.m.Y H:i" }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="text-muted">Это задание ещё никто не выполнял.</p>
+{% endif %}
+
+<a href="{% url 'event-bonus-tasks' task.event.id %}" class="btn btn-secondary mt-3">← Назад к заданию</a>
+{% endblock %}

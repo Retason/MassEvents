@@ -1,0 +1,68 @@
+{% extends 'events/base.html' %}
+{% load qr_filters %}
+
+{% block title %}Задания для {{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="form-card fade-in">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <h2 class="section-title" style="margin: 0;">Задания для "{{ event.title }}"</h2>
+        <a href="{% url 'event-detail' event.id %}" class="btn btn-outline">Назад к мероприятию</a>
+    </div>
+
+    {% if event_tasks or bonus_tasks %}
+        {% if event_tasks %}
+            <h3 class="section-title" style="margin-top: 2rem;">Этапные задания</h3>
+            <ul class="participant-list">
+                {% for task in event_tasks %}
+                    <li>
+                        <div style="flex: 1;">
+                            <strong>{{ task.title }}</strong><br>
+                            <span class="text-muted">{{ task.description }}</span>
+                        </div>
+                        {% if task.id in completed_event_task_ids %}
+                            <div class="badge badge-green">Выполнено</div>
+                        {% else %}
+                            {% if task.type == 'question' %}
+                                <a href="{% url 'submit-event-task-code' event.id task.id %}" class="btn btn-sm btn-green">Перейти к заданию</a>
+                            {% else %}
+                                <form method="post" action="{% url 'complete-event-task' task.id %}">
+                                    {% csrf_token %}
+                                    <button class="btn btn-sm btn-green">Выполнить</button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if bonus_tasks %}
+            <h3 class="section-title" style="margin-top: 2rem;">Бонусные задания</h3>
+            <ul class="participant-list">
+                {% for task in bonus_tasks %}
+                    <li>
+                        <div style="flex: 1;">
+                            <strong>{{ task.name }}</strong><br>
+                            <span class="text-muted">{{ task.description }}</span><br>
+                            {% if task.code %}
+                                <small class="text-muted">Код: {{ task.code }}</small>
+                            {% endif %}
+                        </div>
+                        {% if task.id in completed_bonus_task_ids %}
+                            <div class="badge badge-green">Выполнено</div>
+                        {% else %}
+                            <form method="post" action="{% url 'complete-bonus-task' task.id %}">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-green">Выполнить</button>
+                            </form>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% else %}
+        <p class="text-muted" style="margin-top: 1.5rem;">Заданий пока нет.</p>
+    {% endif %}
+</div>
+{% endblock %}

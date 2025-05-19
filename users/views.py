@@ -223,12 +223,12 @@ def bonus_task_create(request):
             messages.success(request, "Бонусное задание создано!")
             if event:
                 return redirect("event-bonus-tasks", event_id=event.id)
-            return redirect("manage_bonus_tasks")
+            return redirect("available-bonus-tasks")
     else:
         form = BonusTaskForm()
         question_formset = QuizQuestionFormSet(queryset=QuizQuestion.objects.none())
 
-    return render(request, "admin/bonus_task_form.html", {
+    return render(request, "users/bonus_task_form_user.html", {
         "form": form,
         "is_edit": False,
         "event": event,
@@ -243,14 +243,14 @@ def bonus_task_edit(request, task_id):
 
     if not request.user.is_admin():
         messages.error(request, "Доступ запрещён.")
-        return redirect("manage_bonus_tasks")
+        return redirect("available-bonus-tasks")
 
     if request.method == "POST":
         form = BonusTaskForm(request.POST, instance=task)
         if form.is_valid():
             form.save()
             messages.success(request, "Задание обновлено!")
-            return redirect("manage_bonus_tasks")
+            return redirect("available-bonus-tasks")
     else:
         form = BonusTaskForm(instance=task)
 
@@ -264,11 +264,11 @@ def bonus_task_delete(request, task_id):
 
     if not request.user.is_admin():
         messages.error(request, "Доступ запрещён.")
-        return redirect("manage_bonus_tasks")
+        return redirect("available-bonus-tasks")
 
     task.delete()
     messages.success(request, "Задание удалено.")
-    return redirect("manage_bonus_tasks")
+    return redirect("available-bonus-tasks")
 
 
 @login_required
@@ -397,11 +397,11 @@ def bonus_task_create(request):
             messages.success(request, "Бонусное задание создано!")
             if event:
                 return redirect("event-bonus-tasks", event_id=event.id)
-            return redirect("manage_bonus_tasks")
+            return redirect("available-bonus-tasks")
     else:
         form = BonusTaskForm()
 
-    return render(request, "admin/bonus_task_form.html", {
+    return render(request, "users/bonus_task_form_user.html", {
         "form": form,
         "is_edit": False,
         "event": event

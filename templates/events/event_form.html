@@ -1,0 +1,76 @@
+{% extends 'events/base.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}{% if is_edit %}Редактировать мероприятие{% else %}Создать мероприятие{% endif %}{% endblock %}
+
+{% block content %}
+<div class="form-card">
+<h2 class="section-title">{% if is_edit %}Редактировать мероприятие{% else %}Создать мероприятие{% endif %}</h2>
+
+<form class="fade-in" method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <h3 class="section-title"><i data-lucide="edit-3" class="icon"></i> Основная информация</h3>
+
+    <div class="form-group-floating">
+        <input type="text" class="input" placeholder=" " id="title" name="title" value="{{ form.title.value|default_if_none:'' }}" required>
+        <label for="title">Название</label>
+    </div>
+
+    <div class="form-group-floating">
+        <textarea class="input" placeholder=" " id="description" name="description">{{ form.description.value|default_if_none:"" }}</textarea>
+        <label for="description">Описание</label>
+    </div>
+
+    <div class="form-group-floating">
+        <input type="number" class="input" placeholder=" " id="max_participants" name="max_participants"
+               value="{{ form.max_participants.value|default_if_none:100 }}" min="1">
+        <label for="max_participants">Максимум участников</label>
+    </div>
+
+    <div class="form-check mb-3" style="margin-top: -10px;">
+        <input type="checkbox" class="input" id="id_enable_tasks" name="enable_tasks"
+               {% if form.enable_tasks.value or form.instance.enable_tasks %}checked{% endif %}>
+        <label class="label" for="id_enable_tasks">Включить конкурсы и задания</label>
+    </div>
+
+    <h3 class="section-title"><i data-lucide="image" class="icon"></i> Изображение</h3>
+    <div class="form-group-floating">
+        <input type="file" class="input" id="image" name="image" onchange="previewImage(event)">
+        <label for="image">Выберите изображение</label>
+        <img id="preview" style="display:none; max-width: 100%; margin-top: 10px;" />
+    </div>
+
+    <h3 class="section-title"><i data-lucide="map-pin" class="icon"></i> Местоположение</h3>
+    <div class="form-group-floating">
+        <input type="text" class="input" placeholder=" " id="location" name="location" value="{{ form.location.value|default_if_none:'' }}">
+        <label for="location">Место</label>
+    </div>
+
+    <div class="card-block">
+        <label for="map" class="label">Выберите место на карте (перетащите маркер или кликните)</label>
+        <div id="map" style="width: 100%; height: 400px; border-radius: 8px;"></div>
+    </div>
+
+    <input type="hidden" id="latitude" name="latitude" value="{{ form.latitude.value|default:form.instance.latitude|default:'' }}">
+    <input type="hidden" id="longitude" name="longitude" value="{{ form.longitude.value|default:form.instance.longitude|default:'' }}">
+
+    <h3 class="section-title"><i data-lucide="calendar" class="icon"></i> Время проведения</h3>
+
+    <div class="form-group-floating">
+        <input type="text" class="input" id="start_time" name="start_time" placeholder=" " value="{{ form.instance.start_time|date:'d.m.Y, H:i' }}">
+        <label for="start_time">Дата и время начала</label>
+    </div>
+
+    <div class="form-group-floating">
+        <input type="text" class="input" id="end_time" name="end_time" placeholder=" " value="{{ form.instance.end_time|date:'d.m.Y, H:i' }}">
+        <label for="end_time">Дата и время окончания</label>
+    </div>
+
+    <div class="button-group" style="margin-top: 2rem;">
+        <button type="submit" class="btn btn-green">{% if is_edit %}Сохранить изменения{% else %}Сохранить{% endif %}</button>
+        <a href="{% url 'event-list' %}" class="btn btn-outline">Отмена</a>
+    </div>
+</form>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+{% extends 'events/base.html' %}
+{% block title %}Каталог призов{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Каталог призов</h2>
+
+{% if user.is_authenticated and user.is_admin %}
+    <div class="mb-3 text-end">
+        <a href="{% url 'bonus-task-create' %}" class="btn btn-primary">Добавить бонус</a>
+    </div>
+{% endif %}
+
+<div class="row">
+    {% for prize in prizes %}
+        <div class="col-md-4">
+            <div class="card mb-4 h-100">
+                {% if prize.image %}
+                    <img src="{{ prize.image.url }}" class="card-img-top" alt="{{ prize.name }}">
+                {% endif %}
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">{{ prize.name }}</h5>
+                    <p class="card-text">{{ prize.description|default:"Без описания." }}</p>
+                    <p class="card-text">
+                        <strong>Стоимость:</strong> {{ prize.cost }} ₽
+                    </p>
+                    {% if user.is_authenticated %}
+                        {% if user.balance >= prize.cost %}
+                            <form method="post" action="{% url 'redeem-prize' prize.id %}">
+                                {% csrf_token %}
+                                <button class="btn btn-success mt-auto">Получить</button>
+                            </form>
+                        {% else %}
+                            <button class="btn btn-secondary mt-auto" disabled>Недостаточно баллов</button>
+                        {% endif %}
+                    {% else %}
+                        <a href="{% url 'login' %}" class="btn btn-primary mt-auto">Войдите, чтобы получить</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <p>Пока нет доступных призов.</p>
+    {% endfor %}
+</div>
+{% endblock %}

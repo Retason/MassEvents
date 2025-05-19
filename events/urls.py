@@ -1,11 +1,12 @@
 from django.urls import path
 from .views import (
+    bonus_task_code_form,
     event_list, event_detail, event_create, event_edit, event_delete,
     stage_create, stage_edit, stage_delete, register_for_event, unregister_from_event,
     toggle_registration, remove_participant, my_events,
     task_list, task_create, task_edit, task_delete, redeem_bonus_code, event_bonus_tasks,
     event_tasks_for_user, complete_event_task, event_user_tasks, submit_event_task_code,
-    complete_bonus_task,
+    complete_bonus_task, bonus_task_edit,
 )
 
 
@@ -38,4 +39,7 @@ urlpatterns = [
     path('events/<int:event_id>/tasks/', event_user_tasks, name='event-user-tasks'),
     path('events/<int:event_id>/tasks/<int:task_id>/submit/', submit_event_task_code, name='submit-event-task-code'),
     path('bonus-task/<int:task_id>/complete/', complete_bonus_task, name='complete-bonus-task'),
+    path('bonus-tasks/<int:task_id>/edit/', bonus_task_edit, name='bonus-task-edit'),
+
+    path('bonus-tasks/<int:task_id>/redeem/', bonus_task_code_form, name='redeem-bonus-code-form'),
 ]

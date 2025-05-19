@@ -1,0 +1,27 @@
+
+{% extends 'events/base.html' %}
+{% block title %}Вход в систему{% endblock %}
+
+{% block content %}
+<div class="form-card">
+<h2 class="section-title">Вход в систему</h2>
+<form class="fade-in" method="post">
+    {% csrf_token %}
+
+    <div class="form-group-floating">
+        <input type="text" class="input" placeholder=" " id="id_username" name="username" required>
+        <label for="id_username">Имя пользователя</label>
+    </div>
+
+    <div class="form-group-floating">
+        <input type="password" class="input" placeholder=" " id="id_password" name="password" required>
+        <label for="id_password">Пароль</label>
+    </div>
+
+    <div class="button-group" style="margin-top: 2rem;">
+        <button type="submit" class="btn btn-green">Войти</button>
+        <a href="{% url 'register' %}" class="btn btn-outline">Зарегистрироваться</a>
+    </div>
+</form>
+</div>
+{% endblock %}

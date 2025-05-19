@@ -1,0 +1,65 @@
+
+{% extends 'events/base.html' %}
+{% block title %}Профиль{% endblock %}
+
+{% block content %}
+<div class="wallet-wrapper fade-in">
+
+<div class="wallet-card">
+    <h2 class="wallet-title">Профиль: {{ user.username }}</h2>
+    <p><strong>Email:</strong> {{ user.email }}</p>
+    <p><strong>Роль:</strong> {{ user.get_role_display }}</p>
+    <p><strong>Баланс:</strong> {{ balance }} ₽</p>
+</div>
+
+{% if registered_events %}
+<div class="wallet-card">
+    <h4>Вы записаны на мероприятия:</h4>
+    <ul class="participant-list">
+        {% for reg in registered_events %}
+        <li>
+            <a href="{% url 'event-detail' reg.event.id %}">
+                {{ reg.event.title }} — {{ reg.event.start_time|date:"d.m.Y H:i" }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+{% if bonus_tasks %}
+<div class="wallet-card">
+    <h4>Выполненные бонусные задания</h4>
+    <table class="profile-table">
+        <thead>
+            <tr>
+                <th>Задание</th>
+                <th>Награда</th>
+                <th>Дата</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for task in bonus_tasks %}
+            <tr>
+                <td>{{ task.task.name }}</td>
+                <td>+{{ task.task.reward }} ₽</td>
+                <td>{{ task.completed_at|date:"d.m.Y H:i" }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<div class="wallet-card">
+    <h4>Ввести бонус-код</h4>
+    <form action="{% url 'submit-bonus-code' %}" method="POST" class="wallet-form">
+        {% csrf_token %}
+        <input class="input" name="code" placeholder="Введите код" type="text"/>
+        <button class="btn-green" type="submit">Получить бонус</button>
+    </form>
+    <a class="btn btn-outline-primary" href="{% url 'wallet' %}">Перейти в кошелёк</a>
+</div>
+
+</div>
+{% endblock %}

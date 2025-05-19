@@ -1,0 +1,45 @@
+{% extends 'events/base.html' %}
+{% block title %}История операций{% endblock %}
+
+{% block content %}
+<h2>История операций</h2>
+
+{% if transactions %}
+    <table class="table table-striped mt-4">
+        <thead>
+            <tr>
+                <th>Дата</th>
+                <th>Тип</th>
+                <th>Сумма</th>
+                <th>Описание</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for tx in transactions %}
+                <tr>
+                    <td>{{ tx.created_at|date:"d.m.Y H:i" }}</td>
+                    <td>
+                        {% if tx.type == 'income' %}
+                            <span class="text-success">Пополнение</span>
+                        {% else %}
+                            <span class="text-danger">Списание</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if tx.type == 'income' %}
+                            <span class="text-success">+{{ tx.amount }} ₽</span>
+                        {% else %}
+                            <span class="text-danger">-{{ tx.amount }} ₽</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ tx.description }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p class="mt-3">Пока нет операций.</p>
+{% endif %}
+
+<a href="{% url 'wallet' %}" class="btn btn-secondary mt-3">← Назад в кошелёк</a>
+{% endblock %}

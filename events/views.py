@@ -65,18 +65,35 @@ def event_detail(request, pk):
     event.check_and_close_registration()
 
     is_registered = False
-    completed_task_ids = []
 
     if request.user.is_authenticated:
         is_registered = EventRegistration.objects.filter(user=request.user, event=event).exists()
-        completed_task_ids = BonusTaskCompletion.objects.filter(user=request.user).values_list('task_id', flat=True)
+
+        event_tasks = EventTask.objects.filter(event=event, is_active=True)
+        bonus_tasks = BonusTask.objects.filter(event=event, is_active=True)
+
+        completed_event_tasks = TaskCompletion.objects.filter(
+            user=request.user, task__in=event_tasks
+        ).values_list('task_id', flat=True)
+
+        completed_bonus_tasks = BonusTaskCompletion.objects.filter(
+            user=request.user, task__in=bonus_tasks
+        ).values_list('task_id', flat=True)
+    else:
+        event_tasks = []
+        bonus_tasks = []
+        completed_event_tasks = []
+        completed_bonus_tasks = []
 
     context = {
         'event': event,
         'is_registered': is_registered,
         'latitude': event.latitude if event.latitude else 55.751574,
         'longitude': event.longitude if event.longitude else 37.573856,
-        'completed_task_ids': completed_task_ids,
+        'event_tasks': event_tasks,
+        'bonus_tasks': bonus_tasks,
+        'completed_event_task_ids': set(completed_event_tasks),
+        'completed_bonus_task_ids': set(completed_bonus_tasks),
     }
 
     return render(request, 'events/event_detail.html', context)
@@ -437,6 +454,9 @@ def redeem_bonus_code(request):
 
         try:
             task = BonusTask.objects.get(code=code, is_active=True)
+            if task.admin_only and not request.user.is_superuser:
+                messages.error(request, "Этот код недоступен для обычных пользователей.")
+                return redirect("event-list")
         except BonusTask.DoesNotExist:
             messages.error(request, "Неверный или неактивный бонус-код.")
             return redirect("event-list")
@@ -613,3 +633,71 @@ def complete_bonus_task(request, task_id):
         messages.success(request, f"Вы выполнили бонусное задание и получили {task.reward}₽!")
 
     return redirect('event-user-tasks', event_id=task.event.id)
+
+@login_required
+def bonus_task_edit(request, task_id):
+    task = get_object_or_404(BonusTask, id=task_id)
+
+    if not request.user.is_admin() and (not task.event or task.event.organizer != request.user):
+        messages.error(request, "Нет доступа к редактированию.")
+        return redirect("event-list")
+
+    if request.method == "POST":
+        form = BonusTaskForm(request.POST, instance=task)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Бонусное задание обновлено!")
+            if task.event:
+                return redirect("event-bonus-tasks", event_id=task.event.id)
+            return redirect("manage_bonus_tasks")
+    else:
+        form = BonusTaskForm(instance=task)
+
+    return render(request, "admin/bonus_task_form.html", {
+        "form": form,
+        "is_edit": True,
+        "task": task
+    })
+
+
+@login_required
+def bonus_task_code_form(request, task_id):
+    task = get_object_or_404(BonusTask, id=task_id, is_active=True)
+    if task.admin_only and not request.user.is_superuser:
+        messages.error(request, "Этот код недоступен для обычных пользователей.")
+        return redirect("event-list")
+
+    if not task.event:
+        messages.error(request, "Это задание не связано с мероприятием.")
+        return redirect("event-list")
+
+    if not EventRegistration.objects.filter(user=request.user, event=task.event).exists():
+        messages.error(request, "Вы не зарегистрированы на это мероприятие.")
+        return redirect("event-detail", pk=task.event.id)
+
+    if request.method == "POST":
+        if BonusTaskCompletion.objects.filter(user=request.user, task=task).exists():
+            messages.info(request, "Вы уже выполнили это задание.")
+            return redirect("event-detail", pk=task.event.id)
+
+        code = request.POST.get("code", "").strip()
+        if code.lower() != (task.code or "").lower():
+            messages.error(request, "Неверный код.")
+            return redirect("redeem-bonus-code-form", task_id=task.id)
+
+        request.user.balance += task.reward
+        request.user.save()
+
+        BonusTaskCompletion.objects.create(user=request.user, task=task)
+
+        WalletTransaction.objects.create(
+            user=request.user,
+            amount=task.reward,
+            type=WalletTransaction.INCOME,
+            description=f"Бонус за задание: {task.name}"
+        )
+
+        messages.success(request, f"Задание выполнено! +{task.reward}₽")
+        return redirect("event-detail", pk=task.event.id)
+
+    return render(request, "events/bonus_code_form.html", {"task": task})

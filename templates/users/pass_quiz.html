@@ -1,0 +1,22 @@
+{% extends 'events/base.html' %}
+{% block content %}
+<div class="container">
+  <h2>{{ task.name }}</h2>
+  <p>{{ task.description }}</p>
+
+  {% if already_done %}
+    <div class="alert alert-info">Вы уже прошли эту викторину.</div>
+  {% else %}
+    <form method="post">
+      {% csrf_token %}
+      {% for q in questions %}
+        <div class="mb-3">
+          <label><strong>{{ forloop.counter }}. {{ q.question }}</strong></label>
+          <input type="text" name="q_{{ q.id }}" class="form-control" required>
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-primary">Отправить</button>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

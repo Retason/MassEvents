@@ -1,0 +1,18 @@
+{% extends 'events/base.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}{% if is_edit %}Редактировать этап{% else %}Добавить этап{% endif %}{% endblock %}
+
+{% block content %}
+<h2 class="section-title">{% if is_edit %}Редактировать этап{% else %}Добавить этап{% endif %}</h2>
+<form class="fade-in" method="post">
+    {% csrf_token %}
+
+    <div class="form-group-floating"><input class="input" id="title" name="title" placeholder=" " required="" type="text" value="{{ form.title.value|default_if_none:'' }}"/><label class="label" for="title">Название этапа</label></div>
+<div class="form-group-floating"><textarea class="input" id="description" name="description" placeholder=" ">{{ form.description.value|default_if_none:'' }}</textarea><label class="label" for="description">Описание</label></div>
+<div class="form-group-floating"><input class="input" id="start_time" name="start_time" placeholder=" " type="text" value="{{ form.start_time.value|default_if_none:'' }}"/><label class="label" for="start_time">Дата и время начала</label></div>
+<div class="form-group-floating"><input class="input" id="end_time" name="end_time" placeholder=" " type="text" value="{{ form.end_time.value|default_if_none:'' }}"/><label class="label" for="end_time">Дата и время окончания</label></div>
+<button class="btn btn-green" type="submit">{% if is_edit %}Сохранить изменения{% else %}Добавить этап{% endif %}</button>
+<a class="btn btn-outline" href="{% url 'event-detail' event.id %}">Отмена</a>
+</form>
+{% endblock %}

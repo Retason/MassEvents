@@ -1,0 +1,40 @@
+
+{% extends 'events/base.html' %}
+{% block title %}Таблица лидеров{% endblock %}
+
+{% block content %}
+<div class="wallet-wrapper fade-in">
+<div class="wallet-card">
+    <h2 class="wallet-title">Лидеры по баллам</h2>
+
+    {% if leaders %}
+    <div style="overflow-x: auto;">
+        <table class="profile-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Пользователь</th>
+                    <th>Email</th>
+                    <th>Баланс (₽)</th>
+                    <th>Выполнено заданий</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in leaders %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.balance|default:"0.00" }}</td>
+                    <td>{{ user.total_tasks|default:0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p class="text-muted">Пока нет данных для отображения.</p>
+    {% endif %}
+</div>
+</div>
+{% endblock %}

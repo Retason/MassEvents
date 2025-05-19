@@ -162,6 +162,7 @@ class BonusTask(models.Model):
     code = models.CharField(max_length=50, blank=True, null=True, unique=True)
     is_active = models.BooleanField(default=True)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="bonus_tasks", null=True, blank=True)
+    admin_only = models.BooleanField(default=False, verbose_name="Только для админов")
 
     def __str__(self):
         return f"{self.name} ({self.reward} баллов)"

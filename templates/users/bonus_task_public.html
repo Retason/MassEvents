@@ -1,0 +1,25 @@
+{% extends 'events/base.html' %}
+{% block title %}Задание{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">{{ task.name }}</h2>
+<p>{{ task.description|default:"Описание отсутствует." }}</p>
+<p><strong>Награда:</strong> {{ task.reward }} ₽</p>
+
+{% if already_done %}
+    <div class="alert alert-success">
+        Вы уже выполнили это задание и получили награду.
+    </div>
+{% else %}
+    {% if task.type == 'code' %}
+        <form method="POST">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">Получить бонус</button>
+        </form>
+    {% else %}
+        <div class="alert alert-info">Это задание нельзя выполнить напрямую.</div>
+    {% endif %}
+{% endif %}
+
+<a href="{% url 'available-bonus-tasks' %}" class="btn btn-secondary mt-3">← К заданиям</a>
+{% endblock %}

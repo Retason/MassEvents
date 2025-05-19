@@ -1,0 +1,27 @@
+{% extends 'events/base.html' %}
+{% block title %}Мои призы{% endblock %}
+
+{% block content %}
+<h2 class="mb-4">Мои призы</h2>
+
+{% if redemptions %}
+    <div class="row">
+        {% for r in redemptions %}
+            <div class="col-md-4">
+                <div class="card mb-4 h-100">
+                    {% if r.prize.image %}
+                        <img src="{{ r.prize.image.url }}" class="card-img-top" alt="{{ r.prize.name }}">
+                    {% endif %}
+                    <div class="card-body">
+                        <h5 class="card-title">{{ r.prize.name }}</h5>
+                        <p class="card-text">{{ r.prize.description|default:"Без описания." }}</p>
+                        <p class="card-text"><small class="text-muted">Получен: {{ r.redeemed_at|date:"d.m.Y H:i" }}</small></p>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <p>Вы ещё не получали призов.</p>
+{% endif %}
+{% endblock %}
