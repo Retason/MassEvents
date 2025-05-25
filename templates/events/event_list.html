@@ -38,14 +38,22 @@
                     {% if event.image %}
                         <img src="{{ event.image.url }}" class="event-banner" alt="Изображение мероприятия">
                     {% else %}
-                        <img src="{% static 'images/default.jpg' %}" class="event-banner" alt="Нет изображения">
+                        <img src="{% static 'images/default_event.jpg' %}" class="event-banner" alt="Нет изображения">
                     {% endif %}
-                    <div class="card-body">
+                    <div class="card-body card-body-stretch">
                         <div class="card-title">{{ event.title }}</div>
                         <div class="card-line"><i data-lucide="clock" class="icon"></i> {{ event.start_time|date:"d.m.Y H:i" }}</div>
-                        <div class="card-line"><i data-lucide="map-pin" class="icon"></i> {{ event.location }}</div>
-                        <div class="card-spacer"></div>
-                        <div class="card-line"><i data-lucide="users" class="icon"></i> {{ event.eventregistration_set.count }}/{{ event.max_participants }}</div>
+                        <div class="card-line truncate-3"><i data-lucide="map-pin" class="icon"></i> {{ event.location }}</div>
+                        <div class="card-bottom"><div class="card-line card-line-flex">
+                            <div><i data-lucide="users" class="icon"></i> {{ event.eventregistration_set.count }}/{{ event.max_participants }}</div>
+                            <div><i data-lucide="credit-card" class="icon"></i>
+                                {% if event.price > 0 %}
+                                    {{ event.price }} ₽
+                                {% else %}
+                                    Бесплатно
+                                {% endif %}
+                            </div>
+                        </div>
                         <div class="card-line">
                             {% if event.registration_closed %}
                                 <span class="badge badge-red"><i data-lucide="x-circle" class="icon"></i> Регистрация закрыта</span>
@@ -54,7 +62,7 @@
                             {% else %}
                                 <span class="badge badge-green"><i data-lucide="check-circle" class="icon"></i> Регистрация открыта</span>
                             {% endif %}
-                        </div>
+                        </div></div>
                     </div>
                 </div>
             </a>

@@ -1,0 +1,26 @@
+{% extends 'events/base.html' %}
+
+{% block title %}Оплата за "{{ event.title }}"{% endblock %}
+
+{% block content %}
+<div class="form-card">
+    <h2 class="section-title"><i data-lucide="credit-card" class="icon"></i> Оплата участия</h2>
+
+    <p>Стоимость участия: <strong>{{ event.price }} ₽</strong></p>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group-floating">
+            <select name="method" class="input" required>
+                <option value="wallet" selected>Оплатить с баланса (кошелёк сайта)</option>
+            </select>
+            <label for="method">Способ оплаты</label>
+        </div>
+
+        <div class="button-group" style="margin-top: 2rem;">
+            <button type="submit" class="btn btn-green">Оплатить и зарегистрироваться</button>
+            <a href="{% url 'event-detail' event.id %}" class="btn btn-outline">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

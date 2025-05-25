@@ -198,7 +198,7 @@ def event_delete(request, pk):
 
 @login_required
 def register_for_event(request, event_id):
-    """Записывает пользователя на мероприятие, если есть места и регистрация открыта"""
+    """Записывает пользователя на мероприятие, если есть места, регистрация открыта и хватает средств"""
     event = get_object_or_404(Event, id=event_id)
 
     if not event.is_registration_open():
@@ -208,6 +208,21 @@ def register_for_event(request, event_id):
     if EventRegistration.objects.filter(user=request.user, event=event).exists():
         messages.warning(request, "Вы уже записаны на это мероприятие!")
     else:
+        if event.price > 0:
+            if request.user.balance < event.price:
+                messages.error(request, f"Недостаточно средств. Требуется {event.price}₽.")
+                return redirect('event-detail', pk=event_id)
+
+            request.user.balance -= event.price
+            request.user.save()
+
+            WalletTransaction.objects.create(
+                user=request.user,
+                amount=event.price,
+                type=WalletTransaction.EXPENSE,
+                description=f"Оплата за участие в мероприятии: {event.title}"
+            )
+
         EventRegistration.objects.create(user=request.user, event=event)
         messages.success(request, "Вы успешно записались на мероприятие!")
 
@@ -701,3 +716,36 @@ def bonus_task_code_form(request, task_id):
         return redirect("event-detail", pk=task.event.id)
 
     return render(request, "events/bonus_code_form.html", {"task": task})
+
+
+@login_required
+def event_payment(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+
+    if EventRegistration.objects.filter(user=request.user, event=event).exists():
+        messages.info(request, "Вы уже зарегистрированы.")
+        return redirect('event-detail', pk=event.id)
+
+    if request.method == "POST":
+        # пока один способ, но структура под расширение
+        method = request.POST.get("method")
+        if method == "wallet":
+            if request.user.balance < event.price:
+                messages.error(request, "Недостаточно средств на балансе.")
+                return redirect('event-payment', event_id=event.id)
+
+            request.user.balance -= event.price
+            request.user.save()
+
+            WalletTransaction.objects.create(
+                user=request.user,
+                amount=event.price,
+                type=WalletTransaction.EXPENSE,
+                description=f"Оплата за участие в мероприятии: {event.title}"
+            )
+
+        EventRegistration.objects.create(user=request.user, event=event)
+        messages.success(request, "Вы успешно зарегистрированы!")
+        return redirect('event-detail', pk=event.id)
+
+    return render(request, "events/payment_form.html", {"event": event})

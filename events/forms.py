@@ -9,7 +9,7 @@ class EventForm(forms.ModelForm):
         model = Event
         fields = [
             'title', 'description', 'location', 'start_time', 'end_time',
-            'max_participants', 'image', 'registration_closed', 'enable_tasks'
+            'max_participants', 'image', 'registration_closed', 'enable_tasks', 'price'
         ]
         widgets = {
             'start_time': forms.TextInput(attrs={'class': 'form-control', 'id': 'id_start_time'}),

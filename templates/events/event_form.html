@@ -28,6 +28,12 @@
         <label for="max_participants">Максимум участников</label>
     </div>
 
+    <div class="form-group-floating">
+        <input type="number" step="0.01" class="input" placeholder=" " id="price" name="price"
+               value="{{ form.price.value|default_if_none:0 }}" min="0">
+        <label for="price">Стоимость участия (₽)</label>
+    </div>
+
     <div class="form-check mb-3" style="margin-top: -10px;">
         <input type="checkbox" class="input" id="id_enable_tasks" name="enable_tasks"
                {% if form.enable_tasks.value or form.instance.enable_tasks %}checked{% endif %}>

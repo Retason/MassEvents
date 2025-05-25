@@ -6,7 +6,7 @@ from .views import (
     toggle_registration, remove_participant, my_events,
     task_list, task_create, task_edit, task_delete, redeem_bonus_code, event_bonus_tasks,
     event_tasks_for_user, complete_event_task, event_user_tasks, submit_event_task_code,
-    complete_bonus_task, bonus_task_edit,
+    complete_bonus_task, bonus_task_edit, event_payment,
 )
 
 
@@ -42,4 +42,6 @@ urlpatterns = [
     path('bonus-tasks/<int:task_id>/edit/', bonus_task_edit, name='bonus-task-edit'),
 
     path('bonus-tasks/<int:task_id>/redeem/', bonus_task_code_form, name='redeem-bonus-code-form'),
+    path('<int:event_id>/payment/', event_payment, name='event-payment'),
+
 ]
