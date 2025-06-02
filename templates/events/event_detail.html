@@ -1,13 +1,9 @@
 {% extends 'events/base.html' %}
 {% load static %}
-
 {% block title %}{{ event.title }}{% endblock %}
 
 {% block content %}
 <div class="event-detail container">
-
-
-
     <div class="event-header">
         {% if event.image %}
     <img src="{{ event.image.url }}" class="event-image" alt="Изображение мероприятия">
@@ -16,6 +12,7 @@
 {% endif %}
         <div class="event-meta-block">
             <h2 class="event-title">{{ event.title }}</h2>
+<p class="event-organizer">Организатор: {{ event.organizer.get_full_name|default:event.organizer.username }}</p>
             <div class="event-description-box">
                 <h3>Описание</h3>
                 <p class="event-description">{{ event.description }}</p>
@@ -85,48 +82,87 @@
     </div>
 
     <div class="card-block" style="border-top: 1px solid #eee; margin-top: 2rem; padding-top: 1rem;">
-        <h3 class="section-title"><i data-lucide="clipboard" class="icon"></i> Регистрация</h3>
+    <h3 class="section-title"><i data-lucide="clipboard" class="icon"></i> Регистрация</h3>
 
-        {% if user.is_authenticated %}
-            {% if event.is_registration_open %}
-                {% if is_registered %}
-                    <div class="info-box">
-                        <i data-lucide="check-circle" class="icon"></i> Вы зарегистрированы на это мероприятие.
+    {% if user.is_authenticated %}
+        {% if event.is_registration_open %}
+            {% if is_registered %}
+                <div class="info-box">
+                    <i data-lucide="check-circle" class="icon"></i> Вы зарегистрированы на это мероприятие.
+                </div>
+                <div class="registration-buttons">
+                    <div class="left-buttons">
+                        {% if user != event.organizer %}
+                        <form method="post" action="{% url 'event-unregister' event.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline btn-sm">Отменить запись</button>
+                        </form>
+                        {% endif %}
                     </div>
-                    <form method="post" action="{% url 'event-unregister' event.id %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-outline btn-sm mt-2">Отменить запись</button>
-                    </form>
-                {% else %}
-                    {% if event.price > 0 %}
-                    <form method="get" action="{% url 'event-payment' event.id %}">
-                        <button type="submit" class="btn btn-green btn-sm">Перейти к оплате</button>
-                    </form>
-                {% else %}
-                    <form method="post" action="{% url 'event-register' event.id %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-green btn-sm">Записаться</button>
-                    </form>
-                {% endif %}
-                {% endif %}
+                    {% if user == event.organizer or user.is_superuser %}
+                        <div class="right-buttons">
+                            <form method="post" action="{% url 'toggle-registration' event.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn {% if event.registration_closed %}btn-green{% else %}btn-orange{% endif %}">
+                                    {% if event.registration_closed %}Открыть регистрацию{% else %}Закрыть регистрацию{% endif %}
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </div>
             {% else %}
-                <div class="warning-box mt-2">
-                    <i data-lucide="x-circle" class="icon"></i> Регистрация закрыта.
+                <div class="registration-buttons">
+                    <div class="left-buttons">
+                        {% if event.price > 0 %}
+                            <form method="get" action="{% url 'event-payment' event.id %}">
+                                <button type="submit" class="btn btn-green btn-sm">Перейти к оплате</button>
+                            </form>
+                        {% else %}
+                            <form method="post" action="{% url 'event-register' event.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-green btn-sm">Записаться</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                    {% if user == event.organizer or user.is_superuser %}
+                        <div class="right-buttons">
+                            <form method="post" action="{% url 'toggle-registration' event.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn {% if event.registration_closed %}btn-green{% else %}btn-orange{% endif %}">
+                                    {% if event.registration_closed %}Открыть регистрацию{% else %}Закрыть регистрацию{% endif %}
+                                </button>
+                            </form>
+                        </div>
+                    {% endif %}
                 </div>
             {% endif %}
         {% else %}
-            <p><a href="{% url 'login' %}">Войдите</a>, чтобы записаться.</p>
-        {% endif %}
 
-        {% if user == event.organizer or user.is_superuser %}
-            <form method="post" action="{% url 'toggle-registration' event.id %}" class="mt-3">
-                {% csrf_token %}
-                <button type="submit" class="btn {% if event.registration_closed %}btn-green{% else %}btn-orange{% endif %}">
-                    {% if event.registration_closed %}Открыть регистрацию{% else %}Закрыть регистрацию{% endif %}
-                </button>
-            </form>
-        {% endif %}
+<div class="registration-buttons">
+    <div class="left-buttons">
+        <div class="warning-box mt-2">
+            <i data-lucide="x-circle" class="icon"></i> Регистрация закрыта.
+        </div>
     </div>
+    {% if user == event.organizer or user.is_superuser %}
+    <div class="right-buttons">
+        <form method="post" action="{% url 'toggle-registration' event.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn {% if event.registration_closed %}btn-green{% else %}btn-orange{% endif %}">
+                {% if event.registration_closed %}Открыть регистрацию{% else %}Закрыть регистрацию{% endif %}
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+
+        {% endif %}
+    {% else %}
+        <p><a href="{% url 'login' %}">Войдите</a>, чтобы записаться.</p>
+    {% endif %}
+</div>
+
 
     {% if user == event.organizer or user.is_superuser %}
         <div class="card-block" style="border-top: 1px solid #eee; margin-top: 2rem; padding-top: 1rem;">
@@ -199,5 +235,52 @@
 </div>
 {% endif %}
 
-    </div>
+
+{% if user == event.organizer or user.is_superuser %}
+  <div class="button-group" style="justify-content: flex-end;">
+    <form method="post" action="{% url 'toggle-publish' event.id %}">
+      {% csrf_token %}
+      <button type="submit"
+              class="btn mt-3 {% if event.is_published %}btn-publish-true{% else %}btn-publish-false{% endif %}">
+        {% if event.is_published %}Снять с публикации{% else %}Опубликовать{% endif %}
+      </button>
+    </form>
+  </div>
+{% endif %}
+
+</div>
+
+<div class="card-block" style="border-top: 1px solid #eee; margin-top: 2rem;">
+    <h3 class="section-title">Комментарии</h3>
+
+    {% if user.is_authenticated %}
+        <form method="post" class="fade-in" style="margin-top: 1.5rem;">
+            {% csrf_token %}
+            <div class="form-group-floating">
+                {{ comment_form.content }}
+                <label for="{{ comment_form.content.id_for_label }}">Добавьте комментарий</label>
+                {% for error in comment_form.content.errors %}
+                    <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            </div>
+            <div class="button-group">
+                <button type="submit" class="btn btn-green btn-sm">Оставить комментарий</button>
+            </div>
+        </form>
+
+    {% else %}
+        <p><a href="{% url 'login' %}">Войдите</a>, чтобы оставить комментарий.</p>
+    {% endif %}
+
+    {% if comments %}
+    <ul class="comment-list">
+        {% for comment in comments %}
+            {% include "events/comment.html" with comment=comment %}
+        {% endfor %}
+    </ul>
+    {% else %}
+        <p class="empty-text">Комментариев пока нет.</p>
+    {% endif %}
+</div>
+
 {% endblock %}

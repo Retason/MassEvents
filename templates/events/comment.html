@@ -1,0 +1,48 @@
+<li class="comment">
+  <div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <strong>
+          {{ comment.user.username }}
+          {% if comment.user == event.organizer %}
+            <span class="badge badge-green">Организатор</span>
+          {% endif %}
+        </strong>
+        <small style="color: #999;">— {{ comment.created_at|date:"d.m.Y H:i" }}</small>
+      </div>
+      <div>
+        {% if request.user != comment.user %}
+        <a href="{% url 'report-comment' comment.id %}" class="reply-toggle" style="color: #c00;">Пожаловаться</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div style="margin-top: 4px;">
+      {{ comment.content }}
+    </div>
+
+    {% if user.is_authenticated %}
+    <a href="#" class="reply-toggle" data-comment-id="{{ comment.id }}">Ответить</a>
+    <form method="post" class="reply-form fade-in" data-form-for="{{ comment.id }}" style="display:none; margin-top: 1rem;">
+        {% csrf_token %}
+        <div class="form-group-floating">
+            <textarea class="input" name="content" rows="2" placeholder=" " required></textarea>
+            <label>Ответить на комментарий</label>
+        </div>
+        <input type="hidden" name="parent_id" value="{{ comment.id }}">
+        <div class="button-group">
+            <button type="submit" class="btn btn-green btn-sm">Ответить</button>
+        </div>
+    </form>
+    {% endif %}
+
+    {% if comment.replies.all %}
+    <a href="#" onclick="toggleReplies({{ comment.id }})" class="toggle-btn">Показать ответы</a>
+    <ul id="replies-{{ comment.id }}" style="display:none;">
+        {% for reply in comment.replies.all %}
+            {% include "events/comment.html" with comment=reply event=event %}
+        {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+</li>

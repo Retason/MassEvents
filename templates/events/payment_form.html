@@ -12,7 +12,10 @@
         {% csrf_token %}
         <div class="form-group-floating">
             <select name="method" class="input" required>
-                <option value="wallet" selected>Оплатить с баланса (кошелёк сайта)</option>
+                <option value="wallet" selected>Оплатить с кошелька (₽)</option>
+{% if user.bonus_balance >= event.price %}
+<option value="bonus">Оплатить бонусами ({{ user.bonus_balance }} Б)</option>
+{% endif %}
             </select>
             <label for="method">Способ оплаты</label>
         </div>

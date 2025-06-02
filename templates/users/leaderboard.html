@@ -8,14 +8,13 @@
     <h2 class="wallet-title">Лидеры по баллам</h2>
 
     {% if leaders %}
-    <div style="overflow-x: auto;">
+    <div style="overflow-x: auto;"><div style="max-width: 480px; margin: 0 auto;">
         <table class="profile-table">
             <thead>
                 <tr>
                     <th>#</th>
                     <th>Пользователь</th>
-                    <th>Email</th>
-                    <th>Баланс (₽)</th>
+
                     <th>Выполнено заданий</th>
                 </tr>
             </thead>
@@ -24,13 +23,12 @@
                 <tr>
                     <td>{{ forloop.counter }}</td>
                     <td>{{ user.username }}</td>
-                    <td>{{ user.email }}</td>
-                    <td>{{ user.balance|default:"0.00" }}</td>
+
                     <td>{{ user.total_tasks|default:0 }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
-        </table>
+        </table></div>
     </div>
     {% else %}
         <p class="text-muted">Пока нет данных для отображения.</p>

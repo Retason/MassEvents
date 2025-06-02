@@ -1,0 +1,44 @@
+{% extends 'events/base.html' %}
+{% block title %}Тикеты{% endblock %}
+
+{% block content %}
+<div class="wallet-wrapper fade-in">
+    <div class="wallet-card">
+        <h2>Список тикетов</h2>
+
+
+
+<form method="get" class="button-group" style="margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px; justify-content: flex-start;">
+    <!-- Фильтр по типу -->
+    <input type="hidden" name="status" value="{{ request.GET.status }}">
+    <button type="submit" name="type" value="" class="btn {% if not request.GET.type %}btn-green{% else %}btn-outline{% endif %}">Все</button>
+    <button type="submit" name="type" value="question" class="btn {% if request.GET.type == 'question' %}btn-green{% else %}btn-outline{% endif %}">Вопросы</button>
+    <button type="submit" name="type" value="report" class="btn {% if request.GET.type == 'report' %}btn-green{% else %}btn-outline{% endif %}">Жалобы</button>
+    <button type="submit" name="type" value="promotion" class="btn {% if request.GET.type == 'promotion' %}btn-green{% else %}btn-outline{% endif %}">Заявки</button>
+</form>
+
+<form method="get" class="button-group" style="margin-bottom: 1.5rem; flex-wrap: wrap; gap: 10px; justify-content: flex-start;">
+    <!-- Фильтр по статусу -->
+    <input type="hidden" name="type" value="{{ request.GET.type }}">
+    <button type="submit" name="status" value="" class="btn {% if not request.GET.status %}btn-green{% else %}btn-outline{% endif %}">Все</button>
+    <button type="submit" name="status" value="open" class="btn {% if request.GET.status == 'open' %}btn-green{% else %}btn-outline{% endif %}">Открытые</button>
+    <button type="submit" name="status" value="closed" class="btn {% if request.GET.status == 'closed' %}btn-green{% else %}btn-outline{% endif %}">Закрытые</button>
+</form>
+
+
+{% if tickets %}
+        <ul class="participant-list">
+            {% for ticket in tickets %}
+            <li>
+                <a href="{% url 'ticket-detail' ticket.id %}">
+                    {{ ticket.get_type_display }} — {{ ticket.created_by.username }} — {{ ticket.status }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>Нет тикетов.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

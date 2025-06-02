@@ -1,12 +1,41 @@
 document.addEventListener('DOMContentLoaded', function () {
+
+    const chatBox = document.getElementById("chat-box");
+    if (chatBox && chatBox.dataset.ticketId) {
+        setInterval(() => {
+            fetch(`/api/users/ticket/${chatBox.dataset.ticketId}/messages/`)
+                .then(res => res.json())
+                .then(data => {
+                    chatBox.innerHTML = data.html;
+                });
+        }, 5000);
+    }
+
+
+    // === scroll restore ===
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', () => {
+            localStorage.setItem('scrollPos', window.scrollY);
+        });
+    });
+
+    const pos = localStorage.getItem('scrollPos');
+    if (pos) {
+        window.scrollTo(0, parseInt(pos));
+        localStorage.removeItem('scrollPos');
+    }
+
     initFlatpickr();
     initMapForm();
+
     const toggleBtn = document.getElementById('menu-toggle');
     const navLinks = document.getElementById('nav-links');
 
-    toggleBtn.addEventListener('click', () => {
-        navLinks.classList.toggle('open');
-    });
+    if (toggleBtn && navLinks) {
+        toggleBtn.addEventListener('click', () => {
+            navLinks.classList.toggle('open');
+        });
+    }
 
     // Анимация появления карточек
     const cards = document.querySelectorAll('.event-card');
@@ -17,38 +46,72 @@ document.addEventListener('DOMContentLoaded', function () {
     // Скрыть/показать карту
     const toggleMapBtn = document.querySelector('[data-toggle-map]');
     const mapContainer = document.querySelector('.map-section .map-box');
+    if (toggleMapBtn && mapContainer) {
+        let mapInitialized = false;
 
+        toggleMapBtn.addEventListener('click', () => {
+            mapContainer.classList.toggle('visible');
 
-if (toggleMapBtn && mapContainer) {
-    let mapInitialized = false;
+            if (!mapInitialized && mapContainer.classList.contains('visible')) {
+                ymaps.ready(function () {
+                    const lat = parseFloat(mapContainer.dataset.lat);
+                    const lon = parseFloat(mapContainer.dataset.lon);
+                    const title = mapContainer.dataset.title;
 
-    toggleMapBtn.addEventListener('click', () => {
-        mapContainer.classList.toggle('visible');
+                    window.myMap = new ymaps.Map("map", {
+                        center: [lat, lon],
+                        zoom: 14
+                    });
 
-        if (!mapInitialized && mapContainer.classList.contains('visible')) {
-            ymaps.ready(function () {
-                const lat = parseFloat(mapContainer.dataset.lat);
-                const lon = parseFloat(mapContainer.dataset.lon);
-                const title = mapContainer.dataset.title;
-
-                window.myMap = new ymaps.Map("map", {
-                    center: [lat, lon],
-                    zoom: 14
+                    const placemark = new ymaps.Placemark([lat, lon], {
+                        balloonContent: title
+                    });
+                    window.myMap.geoObjects.add(placemark);
                 });
+                mapInitialized = true;
+            }
+        });
+    }
 
-                const placemark = new ymaps.Placemark([lat, lon], {
-                    balloonContent: title
-                });
-                window.myMap.geoObjects.add(placemark);
-            });
-            mapInitialized = true;
-        }
+    // Показ/скрытие формы ответа
+    document.querySelectorAll('.reply-toggle').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const commentId = this.dataset.commentId;
+            const form = document.querySelector(`.reply-form[data-form-for="${commentId}"]`);
+            if (form) {
+                form.style.display = form.style.display === 'none' ? 'block' : 'none';
+            }
+        });
     });
-}
 
+    // Показ/скрытие вложенных комментариев
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const commentId = this.getAttribute('onclick').match(/\d+/)[0];
+            const replies = document.getElementById(`replies-${commentId}`);
+            if (replies) {
+                const isHidden = replies.style.display === 'none';
+                replies.style.display = isHidden ? 'block' : 'none';
+                this.textContent = isHidden ? 'Скрыть ответы' : 'Показать ответы';
+            }
+        });
+    });
+
+    // Вывод Django сообщений в toast
+    const djangoMessages = document.querySelectorAll('.messages .message');
+    djangoMessages.forEach(msg => {
+        const text = msg.textContent.trim();
+        let type = 'info';
+        if (msg.classList.contains('success')) type = 'success';
+        else if (msg.classList.contains('error')) type = 'error';
+        else if (msg.classList.contains('warning')) type = 'warning';
+        showToast(type, text);
+        msg.remove();
+    });
 });
 
-// Предпросмотр изображения
 function previewImage(event) {
     const preview = document.getElementById('preview');
     const currentImage = document.getElementById('current-image');
@@ -63,7 +126,6 @@ function previewImage(event) {
     }
 }
 
-// Инициализация Flatpickr для полей даты
 function initFlatpickr() {
     if (typeof flatpickr === 'undefined') return;
 
@@ -86,7 +148,7 @@ function initFlatpickr() {
         dateFormat: "d.m.Y, H:i",
         time_24hr: true,
         minDate: "today",
-        onChange: function(selectedDates) {
+        onChange: function (selectedDates) {
             if (selectedDates.length) {
                 endPicker.set("minDate", selectedDates[0]);
             }
@@ -94,7 +156,6 @@ function initFlatpickr() {
     });
 }
 
-// Инициализация Яндекс.Карты в форме
 function initMapForm() {
     const latInput = document.getElementById('latitude');
     const lonInput = document.getElementById('longitude');
@@ -150,30 +211,17 @@ function getAddressFromCoords(coords, locationInput) {
     });
 }
 
+function showToast(type, message) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
 
-// Поддержка сброса превью при повторной загрузке
-document.getElementById('image')?.addEventListener('change', function(event) {
-    const preview = document.getElementById('preview');
-    if (event.target.files.length > 0) {
-        const file = event.target.files[0];
-        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-        const maxSize = 5 * 1024 * 1024; // 5MB
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerText = message;
 
-        if (!allowedTypes.includes(file.type)) {
-            alert('Разрешены только изображения (JPG, PNG, WEBP)');
-            event.target.value = '';
-            preview.style.display = 'none';
-            return;
-        }
+    container.appendChild(toast);
 
-        if (file.size > maxSize) {
-            alert('Размер изображения не должен превышать 5MB');
-            event.target.value = '';
-            preview.style.display = 'none';
-            return;
-        }
-
-        preview.src = URL.createObjectURL(file);
-        preview.style.display = 'block';
-    }
-});
+    setTimeout(() => {
+        toast.remove();
+    }, 7000);
+}

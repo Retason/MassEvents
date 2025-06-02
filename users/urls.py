@@ -1,15 +1,26 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
+    create_ticket_question, create_ticket_report_user,
+    admin_user_list_view, admin_change_role, admin_toggle_ban,
+    apply_organizer,
+    my_tickets, ticket_conversation,
     RegisterView, CustomTokenObtainPairView, UserListView,
     UserDetailView, verify_email, wallet_view, wallet_history,
     user_profile, prize_catalog, redeem_prize, my_prizes,
     submit_bonus_code, available_bonus_tasks, bonus_task_public,
     public_bonus_tasks, event_user_tasks, leaderboard_view,
-    pass_quiz, bonus_task_create,
-)
+    pass_quiz, bonus_task_create, ticket_list, ticket_detail,
+    create_ticket, report_comment)
 
 urlpatterns = [
+    path("report-comment/<int:comment_id>/", report_comment, name="report-comment"),
+    path("create-ticket/", create_ticket, name="create-ticket"),
+    path("create-ticket/question/", create_ticket_question, name="create-ticket-question"),
+    path("create-ticket/report-user/", create_ticket_report_user, name="create-ticket-report-user"),
+    path("apply-organizer/", apply_organizer, name="apply-organizer"),
+    path("my-tickets/", my_tickets, name="my-tickets"),
+    path("ticket/<int:ticket_id>/", ticket_conversation, name="ticket-conversation"),
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
@@ -30,4 +41,9 @@ urlpatterns = [
     path('event/<int:event_id>/tasks/', event_user_tasks, name='event-user-tasks'),    path('leaders/', leaderboard_view, name='leaderboard'),
     path('quiz/<int:task_id>/', pass_quiz, name='pass-quiz'),
     path('bonus-tasks/create/', bonus_task_create, name='bonus-task-create'),
+    path('tickets/', ticket_list, name='ticket-list'),
+    path('tickets/<int:ticket_id>/', ticket_detail, name='ticket-detail'),
+    path('admin/users/', admin_user_list_view, name='admin-user-list'),
+    path('admin/users/<int:user_id>/role/', admin_change_role, name='admin-change-role'),
+    path('admin/users/<int:user_id>/ban/', admin_toggle_ban, name='admin-toggle-ban'),
 ]

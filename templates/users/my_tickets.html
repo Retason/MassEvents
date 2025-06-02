@@ -1,0 +1,24 @@
+
+{% extends 'events/base.html' %}
+{% block title %}Мои тикеты{% endblock %}
+
+{% block content %}
+<div class="wallet-wrapper fade-in">
+    <div class="wallet-card">
+        <h2 class="wallet-title">Мои тикеты</h2>
+        {% if tickets %}
+        <ul class="participant-list">
+            {% for ticket in tickets %}
+            <li>
+                <a href="{% url 'ticket-conversation' ticket.id %}">
+                    {{ ticket.get_type_display }} — {{ ticket.get_status_display }} — {{ ticket.created_at|date:"d.m.Y H:i" }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="empty-text">У вас пока нет тикетов.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

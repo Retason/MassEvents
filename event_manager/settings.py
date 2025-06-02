@@ -9,7 +9,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-8n@tv)q!yp+1oa16+vz(p(l#c=9qv33yh=kwha_f!#sjok=@+e'
 DEBUG = True
-ALLOWED_HOSTS = []
 
 SITE_URL = "http://127.0.0.1:8000"
 
@@ -115,3 +114,19 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+
+CSRF_COOKIE_DOMAIN = "parkingbooking.online"
+SESSION_COOKIE_DOMAIN = "parkingbooking.online"
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://event-hub.online:7443/',
+    'https://event-hub.online/',
+]
+
+ALLOWED_HOSTS = [
+    'event-hub.online',
+    'www.event-hub.online',
+]

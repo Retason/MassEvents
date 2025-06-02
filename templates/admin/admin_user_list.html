@@ -1,0 +1,63 @@
+{% extends 'events/base.html' %}
+{% block title %}Админка: Пользователи{% endblock %}
+
+{% block content %}
+<div class="wallet-wrapper fade-in">
+  <div class="wallet-card" style="max-width: 1400px; margin: 0 auto; padding: 1.5rem;">
+    <h2 class="wallet-title">Пользователи</h2>
+
+    <form method="get" class="filter-form">
+      <input type="text" name="q" placeholder="Поиск по нику или ID" value="{{ request.GET.q }}" />
+      <label style="display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" name="banned" value="1" {% if request.GET.banned %}checked{% endif %}/> Только забаненные
+      </label>
+      <button type="submit">Поиск</button>
+    </form>
+
+    <div style="overflow-x: auto;">
+<table class="profile-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Ник</th>
+          <th>Почта</th>
+          <th>Роль</th>
+          <th>Бан</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.id }}</td>
+          <td><strong>{{ u.username }}</strong></td>
+          <td><span style="word-break: break-all;">{{ u.email }}</span></td>
+          <td>
+            <form method="post" action="{% url 'admin-change-role' u.id %}">
+              {% csrf_token %}
+              <select name="role" onchange="this.form.submit()" class="input">
+                {% for key, label in role_choices %}
+                  <option value="{{ key }}" {% if u.role == key %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          </td>
+          <td>
+            <form method="post" action="{% url 'admin-toggle-ban' u.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm {% if u.is_active %}btn-danger{% else %}btn-green{% endif %}">
+                {% if u.is_active %}Забанить{% else %}Разбанить{% endif %}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5"><em>Пользователи не найдены.</em></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+</div>
+  </div>
+</div>
+{% endblock %}

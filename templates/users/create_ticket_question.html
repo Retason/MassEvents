@@ -1,0 +1,21 @@
+{% extends 'events/base.html' %}
+{% block title %}Вопрос администрации{% endblock %}
+
+{% block content %}
+<div class="form-card">
+    <h2 class="section-title">Задать вопрос</h2>
+
+    <form method="post" class="fade-in">
+        {% csrf_token %}
+        <div class="form-group-floating">
+            <textarea class="input" name="comment" rows="5" placeholder=" " required>{{ form.comment.value|default_if_none:"" }}</textarea>
+            <label>Опишите ваш вопрос</label>
+        </div>
+
+        <div class="button-group" style="margin-top: 1rem;">
+            <button type="submit" class="btn btn-green">Отправить</button>
+            <a href="{% url 'user-profile' %}" class="btn btn-outline">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

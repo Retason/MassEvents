@@ -1,0 +1,28 @@
+{% extends 'events/base.html' %}
+{% block title %}Жалоба на комментарий{% endblock %}
+
+{% block content %}
+<div class="form-card">
+    <h2 class="section-title">Жалоба на комментарий</h2>
+
+    <div class="info-box" style="margin-bottom: 1rem;">
+        <strong>Комментарий:</strong>
+        <div style="margin-top: 6px; background: #f6f6f6; padding: 10px; border-radius: 6px; border: 1px solid #ddd;">
+            {{ comment.user.username }}: {{ comment.content }}
+        </div>
+    </div>
+
+    <form method="post" class="fade-in">
+        {% csrf_token %}
+        <div class="form-group-floating">
+            {{ form.reason }}
+            <label for="{{ form.reason.id_for_label }}">Опишите причину жалобы</label>
+        </div>
+
+        <div class="button-group" style="margin-top: 1rem;">
+            <button type="submit" class="btn btn-red">Отправить жалобу</button>
+            <a href="{% url 'event-detail' comment.event.id %}" class="btn btn-outline">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

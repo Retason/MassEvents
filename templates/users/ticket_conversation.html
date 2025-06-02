@@ -1,0 +1,41 @@
+
+{% extends 'events/base.html' %}
+{% block title %}Диалог по тикету{% endblock %}
+
+{% block content %}
+<div class="wallet-wrapper fade-in">
+    <div class="wallet-card">
+        <h2 class="wallet-title">Тикет #{{ ticket.id }}</h2>
+        <p><strong>Тип:</strong> {{ ticket.get_type_display }}</p>
+        <p><strong>Статус:</strong> {{ ticket.get_status_display }}</p>
+    </div>
+
+    <div class="wallet-card">
+        <h4>Переписка</h4>
+        <div id="chat-box" data-ticket-id="{{ ticket.id }}" style="display: flex; flex-direction: column; gap: 12px;">
+            {% for msg in ticket_messages %}
+            <div style="background: #f9f9f9; padding: 12px 16px; border-radius: 10px;
+                        {% if msg.sender == user %} align-self: flex-end; background: #e6f4ea; {% else %} align-self: flex-start; {% endif %}">
+                <div style="font-size: 0.85rem; color: #888;">
+                    {{ msg.sender.username }} • {{ msg.created_at|date:"d.m.Y H:i" }}
+                </div>
+                <div style="margin-top: 4px;">{{ msg.text }}</div>
+            </div>
+            {% empty %}
+            <p class="empty-text">Нет сообщений</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if ticket.status != 'closed' %}
+    <div class="wallet-card">
+        <h4>Новое сообщение</h4>
+        <form method="post" class="wallet-form" style="flex-direction: column; gap: 10px;">
+            {% csrf_token %}
+            <textarea name="text" class="input" rows="3" placeholder="Введите сообщение..." required></textarea>
+            <button type="submit" class="btn btn-green">Отправить</button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

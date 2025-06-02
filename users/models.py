@@ -20,7 +20,8 @@ class User(AbstractUser):
     is_verified = models.BooleanField(default=False)  # Флаг подтверждения email
 
     # Баланс пользователя (1 балл = 1 рубль)
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Баланс (₽)")
+    wallet_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Кошелёк (₽)")
+    bonus_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Бонусы")
 
     # Токен подтверждения email
     verification_token = models.UUIDField(unique=True, editable=False, null=True, blank=True)
@@ -44,6 +45,7 @@ class User(AbstractUser):
 
 
 class WalletTransaction(models.Model):
+    '''Транзакции кошелька (рубли)'''
     INCOME = 'income'
     EXPENSE = 'expense'
 
@@ -57,6 +59,7 @@ class WalletTransaction(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
+    admin_response = models.TextField(blank=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -64,6 +67,29 @@ class WalletTransaction(models.Model):
     def __str__(self):
         sign = '+' if self.type == self.INCOME else '-'
         return f"{sign}{self.amount}₽ - {self.description}"
+
+
+# История начислений бонусов
+class BonusTransaction(models.Model):
+    INCOME = 'income'
+    EXPENSE = 'expense'
+    TRANSACTION_TYPES = [
+        (INCOME, 'Начисление'),
+        (EXPENSE, 'Списание'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bonus_transactions')
+    type = models.CharField(max_length=10, choices=TRANSACTION_TYPES)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        sign = '+' if self.type == self.INCOME else '-'
+        return f"{sign}{self.amount} бонусов — {self.description}"
 
 
 class BonusCompletion(models.Model):
@@ -115,3 +141,72 @@ class QuizAnswer(models.Model):
 
     class Meta:
         unique_together = ('user', 'question')
+
+
+class Comment(models.Model):
+    event = models.ForeignKey('events.Event', on_delete=models.CASCADE, related_name='comments')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='replies')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    admin_response = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.user.username}: {self.content[:30]}"
+
+
+class Ticket(models.Model):
+    reported_comment = models.ForeignKey(
+        'Comment',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='reports'
+    )
+    STATUS_CHOICES = [
+        ('open', 'Открыт'),
+        ('closed', 'Закрыт'),
+    ]
+    TYPE_CHOICES = [
+        ('question', 'Вопрос'),
+        ('promotion', 'Повышение статуса'),
+        ('report', 'Жалоба на пользователя'),
+    ]
+
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tickets')
+    reported_user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL,
+                                      related_name='reported_tickets')
+    comment = models.TextField(blank=True)
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='open')
+    created_at = models.DateTimeField(auto_now_add=True)
+    admin_response = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.get_type_display()} — {self.created_by.username}"
+
+
+class OrganizerApplication(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='organizer_applications')
+    passport_series = models.CharField(max_length=10)
+    passport_number = models.CharField(max_length=10)
+    issued_by = models.CharField(max_length=255)
+    date_issued = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    admin_response = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"Заявка от {self.user.username} на организатора"
+
+
+class TicketMessage(models.Model):
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.sender.username}: {self.text[:30]}"

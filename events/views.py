@@ -22,7 +22,7 @@ def parse_datetime(date_str):
 def event_list(request):
     Event.close_expired_registrations()
 
-    events = Event.objects.all()
+    events = Event.objects.filter(is_published=True)
     search_query = request.GET.get('search', '')
     date_filter = request.GET.get('date', '')
     status_filter = request.GET.get('status', '')
@@ -60,6 +60,7 @@ def event_list(request):
 
 
 def event_detail(request, pk):
+    from users.forms import CommentForm
     event = get_object_or_404(Event, pk=pk)
 
     event.check_and_close_registration()
@@ -85,6 +86,20 @@ def event_detail(request, pk):
         completed_event_tasks = []
         completed_bonus_tasks = []
 
+    comments = event.comments.filter(parent__isnull=True).prefetch_related('replies', 'user')
+    form = CommentForm()
+    if request.method == 'POST' and 'content' in request.POST:
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.event = event
+            comment.user = request.user
+            parent_id = request.POST.get('parent_id')
+            if parent_id:
+                comment.parent_id = int(parent_id)
+            comment.save()
+            return redirect('event-detail', pk=pk)
+
     context = {
         'event': event,
         'is_registered': is_registered,
@@ -94,6 +109,8 @@ def event_detail(request, pk):
         'bonus_tasks': bonus_tasks,
         'completed_event_task_ids': set(completed_event_tasks),
         'completed_bonus_task_ids': set(completed_bonus_tasks),
+        'comment_form': form,
+        'comments': comments,
     }
 
     return render(request, 'events/event_detail.html', context)
@@ -511,7 +528,10 @@ def event_tasks_for_user(request, event_id):
     """Отображает задания для участника мероприятия"""
     event = get_object_or_404(Event, id=event_id)
 
-    is_registered = EventRegistration.objects.filter(user=request.user, event=event).exists()
+    is_registered = (
+            request.user == event.organizer
+            or EventRegistration.objects.filter(user=request.user, event=event).exists()
+    )
 
     if not is_registered and not request.user.is_superuser:
         messages.error(request, "Вы не записаны на это мероприятие.")
@@ -727,6 +747,48 @@ def event_payment(request, event_id):
         return redirect('event-detail', pk=event.id)
 
     if request.method == "POST":
+        method = request.POST.get("method")
+
+        if method == "wallet":
+            if request.user.wallet_balance < event.price:
+                messages.error(request, "Недостаточно средств на кошельке.")
+                return redirect('event-payment', event_id=event.id)
+
+            request.user.wallet_balance -= event.price
+            request.user.save()
+
+            WalletTransaction.objects.create(
+                user=request.user,
+                amount=event.price,
+                type=WalletTransaction.EXPENSE,
+                description=f"Оплата за участие в мероприятии: {event.title}"
+            )
+
+        elif method == "bonus":
+            if request.user.bonus_balance < event.price:
+                messages.error(request, "Недостаточно бонусов.")
+                return redirect('event-payment', event_id=event.id)
+
+            request.user.bonus_balance -= event.price
+            request.user.save()
+
+            from users.models import BonusTransaction
+            BonusTransaction.objects.create(
+                user=request.user,
+                amount=event.price,
+                type=BonusTransaction.EXPENSE,
+                description=f"Оплата за участие в мероприятии: {event.title}"
+            )
+
+        else:
+            messages.error(request, "Некорректный способ оплаты.")
+            return redirect('event-payment', event_id=event.id)
+
+        EventRegistration.objects.create(user=request.user, event=event)
+        messages.success(request, "Вы успешно зарегистрированы!")
+        return redirect('event-detail', pk=event.id)
+
+    if request.method == "POST":
         # пока один способ, но структура под расширение
         method = request.POST.get("method")
         if method == "wallet":
@@ -749,3 +811,17 @@ def event_payment(request, event_id):
         return redirect('event-detail', pk=event.id)
 
     return render(request, "events/payment_form.html", {"event": event})
+
+
+@login_required
+def toggle_publish(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    if request.user != event.organizer and not request.user.is_superuser:
+        messages.error(request, "Нет доступа.")
+        return redirect('event-detail', pk=event_id)
+    event.is_published = not event.is_published
+    event.save()
+    EventRegistration.objects.get_or_create(user=request.user, event=event)
+    status = "опубликовано" if event.is_published else "снято с публикации"
+    messages.success(request, f"Мероприятие {status}.")
+    return redirect('event-detail', pk=event_id)

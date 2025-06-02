@@ -26,6 +26,8 @@ class Event(models.Model):
 
     registration_closed = models.BooleanField(default=False)
 
+    is_published = models.BooleanField(default=False, verbose_name="Опубликовано")
+
     enable_tasks = models.BooleanField(
         default=True,
         verbose_name="Включить конкурсы и бонусные задания"

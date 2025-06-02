@@ -1,13 +1,23 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from .models import BonusTask, QuizQuestion
+from django.core.exceptions import ValidationError
+from .models import BonusTask, QuizQuestion, Comment, Ticket, OrganizerApplication, TicketMessage
 from django.forms import modelformset_factory
+
+ALLOWED_DOMAINS = {
+    'gmail.com', 'yandex.ru', 'mail.ru', 'outlook.com', 'icloud.com',
+    'protonmail.com', 'rambler.ru', 'bk.ru', 'inbox.ru', 'list.ru', 'mpt.ru'
+}
 
 User = get_user_model()
 
 
 class RegisterForm(UserCreationForm):
+    def clean_email(self):
+        email = self.cleaned_data['email']
+        domain = email.split('@')[-1].lower()
+
     email = forms.EmailField(required=True)
     role = forms.ChoiceField(choices=User.ROLE_CHOICES[1:], required=True, label="Выберите роль")
 
@@ -51,3 +61,59 @@ QuizQuestionFormSet = modelformset_factory(
     extra=3,
     widgets={'question': forms.Textarea(attrs={'rows': 2})}
 )
+
+
+class CommentForm(forms.ModelForm):
+    class Meta:
+        model = Comment
+        fields = ['content']
+        widgets = {
+            'content': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Добавьте комментарий...', 'class': 'form-control'})
+        }
+
+
+class TicketForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        allowed_types = ['question', 'report']
+        self.fields['type'].choices = [c for c in self.fields['type'].choices if c[0] in allowed_types]
+
+    class Meta:
+        model = Ticket
+        fields = ['type', 'comment']
+        widgets = {
+            'comment': forms.Textarea(attrs={'rows': 3}),
+        }
+
+
+class ReportCommentForm(forms.Form):
+    reason = forms.CharField(
+        label="Причина жалобы",
+        widget=forms.Textarea(attrs={
+            'class': 'input',
+            'placeholder': 'Опишите причину жалобы',
+            'rows': 4
+        })
+    )
+
+
+class OrganizerApplicationForm(forms.ModelForm):
+    class Meta:
+        model = OrganizerApplication
+        fields = ['passport_series', 'passport_number', 'issued_by', 'date_issued']
+        widgets = {
+            'date_issued': forms.DateInput(attrs={'type': 'date'})
+        }
+
+
+class TicketMessageForm(forms.ModelForm):
+    class Meta:
+        model = TicketMessage
+        fields = ['text']
+        widgets = {
+            'text': forms.Textarea(attrs={
+                'rows': 3,
+                'placeholder': 'Введите сообщение...',
+                'class': 'input'
+            })
+        }

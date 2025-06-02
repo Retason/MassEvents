@@ -1,0 +1,21 @@
+{% extends 'events/base.html' %}
+{% block title %}Жалоба на пользователя{% endblock %}
+
+{% block content %}
+<div class="form-card">
+    <h2 class="section-title">Пожаловаться на пользователя</h2>
+
+    <form method="post" class="fade-in">
+        {% csrf_token %}
+        <div class="form-group-floating">
+            <textarea class="input" name="comment" rows="5" placeholder=" " required>{{ form.comment.value|default_if_none:"" }}</textarea>
+            <label>Опишите суть жалобы</label>
+        </div>
+
+        <div class="button-group" style="margin-top: 1rem;">
+            <button type="submit" class="btn btn-green">Отправить</button>
+            <a href="{% url 'user-profile' %}" class="btn btn-outline">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -8,7 +8,7 @@
 <div class="wallet-card">
 <div class="wallet-balance">
 <h5>Текущий баланс:</h5>
-<p class="fs-4 text-success"><strong>{{ balance }} ₽</strong></p>
+<p class="fs-4 text-success"><strong>{{ user.wallet_balance }} ₽</strong></p>
 <form class="mt-3" method="post">
                 {% csrf_token %}
                 <div class="wallet-form">

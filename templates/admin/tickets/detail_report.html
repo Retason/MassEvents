@@ -1,0 +1,66 @@
+{% extends 'events/base.html' %}
+{% block title %}Жалоба #{{ ticket.id }}{% endblock %}
+
+{% block content %}
+<div class="wallet-wrapper fade-in">
+
+  <div class="wallet-card">
+    <h2 class="wallet-title">Жалоба от {{ ticket.created_by.username }}</h2>
+    <div class="card-line"><strong>Дата:</strong> {{ ticket.created_at|date:"d.m.Y H:i" }}</div>
+    <div class="card-line"><strong>Статус:</strong>
+      {% if ticket.status == 'closed' %}
+        <span class="badge badge-red">Закрыт</span>
+      {% else %}
+        <span class="badge badge-green">Открыт</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="wallet-card">
+
+
+
+    {% if ticket.reported_comment %}
+      <p><strong>Жалоба на комментарий:</strong></p>
+      <div class="card-block">
+        <p><strong>{{ ticket.reported_comment.user.username }}:</strong> {{ ticket.reported_comment.content }}</p>
+      </div>
+
+      <p style="margin-top: 1rem;"><strong>Причина:</strong></p>
+<div class="card-block" style="white-space: pre-wrap;">{{ reason_text }}</div>
+      {% else %}
+      <p><strong>Текст жалобы:</strong></p>
+      <div class="card-block" style="white-space: pre-wrap;">{{ ticket.comment }}</div>
+    {% endif %}
+
+
+
+  </div>
+
+  <div class="wallet-card">
+    <h4>Переписка</h4>
+    <div id="chat-box" data-ticket-id="{{ ticket.id }}" style="display: flex; flex-direction: column; gap: 12px;">
+        {% include "users/_chat_messages.html" with ticket_messages=ticket.messages.all %}
+    </div>
+  </div>
+
+  {% if ticket.status != 'closed' %}
+  <div class="wallet-card">
+    <h4>Новое сообщение</h4>
+    <form method="post" class="fade-in">
+      {% csrf_token %}
+      <div class="form-group-floating">
+        <textarea name="response" class="input" placeholder=" " rows="3"></textarea>
+        <label>Ответ администрации</label>
+      </div>
+      <div class="button-group" style="margin-top: 1rem;">
+        <button name="action" value="reply" class="btn btn-outline-primary">Отправить</button>
+        <button name="action" value="close" class="btn btn-red">Закрыть</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <a href="{% url 'ticket-list' %}" class="btn btn-outline-primary" style="margin-top: 1rem;">← Назад к списку</a>
+</div>
+{% endblock %}

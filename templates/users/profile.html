@@ -9,7 +9,12 @@
     <h2 class="wallet-title">Профиль: {{ user.username }}</h2>
     <p><strong>Email:</strong> {{ user.email }}</p>
     <p><strong>Роль:</strong> {{ user.get_role_display }}</p>
-    <p><strong>Баланс:</strong> {{ balance }} ₽</p>
+    <p><strong>Кошелёк:</strong> {{ user.wallet_balance }} ₽</p>
+<p><strong>Бонусы:</strong> {{ user.bonus_balance }} Б</p>
+
+<div class="wallet-card">
+  <a class="btn btn-outline-primary" href="{% url 'wallet' %}">Перейти в кошелёк</a>
+</div>
 </div>
 
 {% if registered_events %}
@@ -26,6 +31,37 @@
     </ul>
 </div>
 {% endif %}
+
+{% if user.is_organizer or user.is_superuser %}
+<div class="wallet-card">
+    <h4>Мои мероприятия</h4>
+    {% with my_events=user.event_set.all %}
+        {% if my_events %}
+            <ul class="participant-list">
+                {% for event in my_events %}
+                    <li>
+                        <a href="{% url 'event-detail' event.id %}">
+                            {{ event.title }} — {{ event.start_time|date:"d.m.Y H:i" }}
+                            {% if not event.is_published %}<span class="badge badge-gray">Черновик</span>{% endif %}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="empty-text">Вы ещё не создали ни одного мероприятия.</p>
+        {% endif %}
+    {% endwith %}
+</div>
+{% endif %}
+
+<div class="wallet-card">
+    <h4>Ввести бонус-код</h4>
+    <form action="{% url 'submit-bonus-code' %}" method="POST" class="wallet-form">
+        {% csrf_token %}
+        <input class="input" name="code" placeholder="Введите код" type="text"/>
+        <button class="btn-green" type="submit">Получить бонус</button>
+    </form>
+</div>
 
 {% if bonus_tasks %}
 <div class="wallet-card">
@@ -51,15 +87,31 @@
 </div>
 {% endif %}
 
+{% if not user.is_organizer and not user.is_admin %}
 <div class="wallet-card">
-    <h4>Ввести бонус-код</h4>
-    <form action="{% url 'submit-bonus-code' %}" method="POST" class="wallet-form">
-        {% csrf_token %}
-        <input class="input" name="code" placeholder="Введите код" type="text"/>
-        <button class="btn-green" type="submit">Получить бонус</button>
-    </form>
-    <a class="btn btn-outline-primary" href="{% url 'wallet' %}">Перейти в кошелёк</a>
+    <a class="btn btn-warning" href="{% url 'apply-organizer' %}">Стать организатором</a>
 </div>
+{% endif %}
+
+{% if not user.is_admin %}
+<div class="wallet-card">
+    <a class="btn btn-outline-primary" href="{% url 'my-tickets' %}">Мои тикеты</a>
+</div>
+{% endif %}
+
+<div class="wallet-card">
+    <a class="btn btn-outline-primary" href="{% url 'create-ticket' %}">Создать тикет</a>
+</div>
+
+{% if user.is_admin %}
+<div class="wallet-card">
+  <h4>Админ-панель</h4>
+  <div class="button-group">
+    <a href="{% url 'ticket-list' %}" class="btn btn-outline-primary">Обработка тикетов</a>
+    <a href="{% url 'admin-user-list' %}" class="btn btn-outline-primary">Управление пользователями</a>
+  </div>
+</div>
+{% endif %}
 
 </div>
 {% endblock %}

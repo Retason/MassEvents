@@ -17,10 +17,10 @@ from . import serializers
 from events.models import EventRegistration, BonusTaskCompletion, Event
 from .models import (
     User, WalletTransaction, BonusTask, BonusCompletion,
-    Prize, PrizeRedemption, QuizQuestion, QuizAnswer,
+    Prize, PrizeRedemption, QuizQuestion, QuizAnswer, BonusTransaction,
 )
 from .serializers import RegisterSerializer, UserSerializer
-from .forms import RegisterForm, LoginForm, BonusTaskForm, QuizQuestionFormSet
+from .forms import RegisterForm, LoginForm, BonusTaskForm, QuizQuestionFormSet, CommentForm
 from .utils import send_verification_email
 
 from decimal import Decimal
@@ -79,13 +79,14 @@ def register(request):
             ).first()
 
             if task:
-                user.balance += task.reward
+                user.bonus_balance += task.reward
                 user.save()
 
-                WalletTransaction.objects.create(
+                from .models import BonusTransaction
+                BonusTransaction.objects.create(
                     user=user,
                     amount=task.reward,
-                    type=WalletTransaction.INCOME,
+                    type=BonusTransaction.INCOME,
                     description="Бонус за регистрацию"
                 )
                 BonusCompletion.objects.create(user=user, task=task)
@@ -134,7 +135,7 @@ def wallet_view(request):
             if amount <= 0:
                 messages.error(request, "Сумма должна быть положительной.")
             else:
-                request.user.balance += amount
+                request.user.wallet_balance += amount
                 request.user.save()
 
                 WalletTransaction.objects.create(
@@ -149,7 +150,7 @@ def wallet_view(request):
             messages.error(request, "Введите корректную сумму.")
 
     return render(request, "users/wallet.html", {
-        "balance": request.user.balance,
+        "balance": request.user.wallet_balance,
         "transactions": transactions
     })
 
@@ -280,9 +281,8 @@ def user_profile(request):
     return render(request, 'users/profile.html', {
         'registered_events': registered_events,
         'bonus_tasks': bonus_tasks,
-        'balance': request.user.balance
+        'balance': request.user.wallet_balance
     })
-
 
 
 def prize_catalog(request):
@@ -295,11 +295,27 @@ def prize_catalog(request):
 def redeem_prize(request, prize_id):
     prize = get_object_or_404(Prize, id=prize_id, is_active=True)
 
-    if request.user.balance < prize.cost:
-        messages.error(request, "Недостаточно баллов для получения приза.")
+    if request.user.bonus_balance < prize.cost:
+        messages.error(request, "Недостаточно бонусов для получения приза.")
         return redirect('prize-catalog')
 
-    request.user.balance -= prize.cost
+    request.user.bonus_balance -= prize.cost
+    request.user.save()
+
+    PrizeRedemption.objects.create(user=request.user, prize=prize)
+
+    from .models import BonusTransaction
+    BonusTransaction.objects.create(
+        user=request.user,
+        type=BonusTransaction.EXPENSE,
+        amount=prize.cost,
+        description=f"Получен приз: {prize.name}"
+    )
+
+    messages.success(request, f"Вы получили приз: {prize.name}!")
+    return redirect('prize-catalog')
+
+    request.user.wallet_balance -= prize.cost
     request.user.save()
 
     PrizeRedemption.objects.create(user=request.user, prize=prize)
@@ -329,7 +345,7 @@ def submit_bonus_code(request):
 
     if not code:
         messages.error(request, "Пожалуйста, введите код.")
-        return redirect("user-profile")  # или другую страницу
+        return redirect("user-profile")
 
     try:
         task = BonusTask.objects.get(code__iexact=code, is_active=True)
@@ -341,7 +357,33 @@ def submit_bonus_code(request):
         messages.info(request, "Вы уже использовали этот код.")
         return redirect("user-profile")
 
-    request.user.balance += task.reward
+    request.user.bonus_balance += task.reward
+    request.user.save()
+
+    BonusTaskCompletion.objects.create(user=request.user, task=task)
+
+    from .models import BonusTransaction
+    BonusTransaction.objects.create(
+        user=request.user,
+        amount=task.reward,
+        type=BonusTransaction.INCOME,
+        description=f"Бонус за код: {task.name}"
+    )
+
+    messages.success(request, f"Поздравляем! Вы получили {task.reward} бонусов за задание «{task.name}».")
+    return redirect("user-profile")  # или другую страницу
+
+    try:
+        task = BonusTask.objects.get(code__iexact=code, is_active=True)
+    except BonusTask.DoesNotExist:
+        messages.error(request, "Код недействителен или уже использован.")
+        return redirect("user-profile")
+
+    if BonusTaskCompletion.objects.filter(user=request.user, task=task).exists():
+        messages.info(request, "Вы уже использовали этот код.")
+        return redirect("user-profile")
+
+    request.user.bonus_balance += task.reward
     request.user.save()
 
     BonusTaskCompletion.objects.create(user=request.user, task=task)
@@ -419,7 +461,7 @@ def bonus_task_public(request, code):
     already_done = BonusTaskCompletion.objects.filter(user=request.user, task=task).exists()
 
     if request.method == "POST" and not already_done:
-        request.user.balance += task.reward
+        request.user.bonus_balance += task.reward
         request.user.save()
 
         BonusTaskCompletion.objects.create(user=request.user, task=task)
@@ -448,7 +490,8 @@ def event_user_tasks(request, event_id):
         return redirect('event-detail', pk=event_id)
 
     tasks = BonusTask.objects.filter(event=event, is_active=True)
-    completed_ids = BonusTaskCompletion.objects.filter(user=request.user, task__in=tasks).values_list('task_id', flat=True)
+    completed_ids = BonusTaskCompletion.objects.filter(user=request.user, task__in=tasks).values_list('task_id',
+                                                                                                      flat=True)
 
     return render(request, 'users/event_tasks.html', {
         'event': event,
@@ -535,7 +578,8 @@ def export_event_completions_xlsx(request, event_id):
         return redirect("event-detail", pk=event.id)
 
     tasks = BonusTask.objects.filter(event=event)
-    completions = BonusTaskCompletion.objects.filter(task__in=tasks).select_related("user", "task").order_by("task__name", "completed_at")
+    completions = BonusTaskCompletion.objects.filter(task__in=tasks).select_related("user", "task").order_by(
+        "task__name", "completed_at")
 
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -568,14 +612,12 @@ def leaderboard_view(request):
     from django.contrib.auth import get_user_model
     User = get_user_model()
 
-    users = User.objects.annotate(
-        total_tasks=Count('bonustaskcompletion'),
-        total_balance=Sum('balance')
-    ).order_by('-balance', '-total_tasks')[:20]
+    users = User.objects.annotate(total_tasks=Count('bonustaskcompletion')).order_by('-bonus_balance', '-total_tasks')[:20]
 
     return render(request, 'users/leaderboard.html', {
         'leaders': users,
     })
+
 
 @login_required
 def pass_quiz(request, task_id):
@@ -593,13 +635,13 @@ def pass_quiz(request, task_id):
                 correct += 1
 
         if correct == len(questions):
-            request.user.balance += task.reward
+            request.user.bonus_balance += task.reward
             request.user.save()
             BonusTaskCompletion.objects.create(user=request.user, task=task)
             WalletTransaction.objects.create(
                 user=request.user,
                 amount=task.reward,
-                type=WalletTransaction.INCOME,
+                type=BonusTransaction.INCOME,
                 description=f"Викторина: {task.name}"
             )
             messages.success(request, f"Поздравляем! Вы прошли викторину и получили {task.reward}₽.")
@@ -613,3 +655,293 @@ def pass_quiz(request, task_id):
         "questions": questions,
         "already_done": already_done
     })
+
+
+@login_required
+def ticket_list(request):
+    if not request.user.is_admin():
+        messages.error(request, "Доступ запрещён.")
+        return redirect("user-profile")
+    from .models import Ticket
+    ticket_type = request.GET.get("type")
+    tickets = Ticket.objects.all().order_by("-created_at")
+    status = request.GET.get("status")
+    if status in ["open", "closed"]:
+        tickets = tickets.filter(status=status)
+    if ticket_type in ["question", "report", "promotion"]:
+        tickets = tickets.filter(type=ticket_type)
+    return render(request, "admin/ticket_list.html", {"tickets": tickets})
+
+
+@login_required
+def ticket_detail(request, ticket_id):
+    if not request.user.is_admin():
+        messages.error(request, "Доступ запрещён.")
+        return redirect("user-profile")
+    from .models import Ticket, OrganizerApplication, User
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+
+    if request.method == "POST":
+        action = request.POST.get("action")
+        response = request.POST.get("response", "").strip()
+
+        if response:
+            ticket.admin_response = response
+
+        if action == "close":
+            ticket.status = "closed"
+            ticket.save()
+            messages.success(request, "Тикет закрыт.")
+        elif action == "accept" and ticket.type == "promotion":
+            ticket.status = "closed"
+            ticket.save()
+            ticket.created_by.role = User.ORGANIZER
+            ticket.created_by.save()
+            messages.success(request, "Пользователь назначен организатором.")
+        elif action == "reject" and ticket.type == "promotion":
+            ticket.status = "closed"
+            ticket.save()
+            messages.info(request, "Заявка отклонена.")
+
+        if action:
+            ticket.save()
+            return redirect("ticket-detail", ticket_id=ticket.id)
+
+    template_map = {
+        "promotion": "admin/tickets/detail_promotion.html",
+        "report": "admin/tickets/detail_report.html",
+        "question": "admin/tickets/detail_question.html",
+    }
+    reason_text = None
+    if ticket.type == "report" and ticket.reported_comment:
+        if "Причина:" in ticket.comment:
+            reason_text = ticket.comment.split("Причина:", 1)[-1].strip()
+    return render(request, template_map.get(ticket.type, "admin/ticket_detail.html"), {
+        "ticket": ticket,
+        "reason_text": reason_text
+    })
+
+
+@login_required
+def apply_organizer(request):
+    if request.user.is_organizer():
+        messages.info(request, "Вы уже являетесь организатором.")
+        return redirect("user-profile")
+
+    from .models import OrganizerApplication, Ticket
+    from .forms import OrganizerApplicationForm
+
+    from .models import Ticket
+    if Ticket.objects.filter(created_by=request.user, type="promotion", status="open").exists():
+        messages.info(request, "Заявка уже отправлена и находится на рассмотрении.")
+        return redirect("user-profile")
+
+    if request.method == "POST":
+        form = OrganizerApplicationForm(request.POST)
+        if form.is_valid():
+            application = form.save(commit=False)
+            application.user = request.user
+            application.save()
+
+            Ticket.objects.create(
+                created_by=request.user,
+                type='promotion',
+                comment="Заявка на получение статуса организатора"
+            )
+
+            messages.success(request, "Заявка отправлена. Ожидайте решения администрации.")
+            return redirect("user-profile")
+    else:
+        form = OrganizerApplicationForm()
+
+    return render(request, "users/apply_organizer.html", {"form": form})
+
+
+@login_required
+def my_tickets(request):
+    from .models import Ticket
+    tickets = Ticket.objects.filter(created_by=request.user).order_by('-created_at')
+    return render(request, "users/my_tickets.html", {"tickets": tickets})
+
+
+@login_required
+def ticket_conversation(request, ticket_id):
+    from .models import Ticket, TicketMessage
+    from .forms import TicketMessageForm
+    ticket = get_object_or_404(Ticket, id=ticket_id)
+
+    if request.user != ticket.created_by and not request.user.is_admin():
+        messages.error(request, "Доступ запрещён.")
+        return redirect("user-profile")
+
+    if request.method == "POST" and ticket.status != "closed":
+        form = TicketMessageForm(request.POST)
+        if form.is_valid():
+            msg = form.save(commit=False)
+            msg.ticket = ticket
+            msg.sender = request.user
+            msg.save()
+
+            # Уведомление на почту другой стороне
+            from django.core.mail import send_mail
+            recipient = ticket.created_by.email if request.user.is_admin() else "admin@example.com"  # заменить на реальный адрес
+            send_mail(
+                subject=f"Новое сообщение по тикету #{ticket.id}",
+                message=msg.text,
+                from_email=None,
+                recipient_list=[recipient],
+                fail_silently=True,
+            )
+
+            return redirect("ticket-conversation", ticket_id=ticket.id)
+    else:
+        form = TicketMessageForm()
+
+    messages_qs = TicketMessage.objects.filter(ticket=ticket).select_related("sender").order_by("created_at")
+
+    return render(request, "users/ticket_conversation.html", {
+        "ticket": ticket,
+        "messages": messages_qs,
+        "form": form
+    })
+
+
+@login_required
+def create_ticket(request):
+    from .forms import TicketForm
+    from .models import Ticket
+    if request.method == "POST":
+        form = TicketForm(request.POST)
+        if form.is_valid():
+            ticket = form.save(commit=False)
+            ticket.created_by = request.user
+            ticket.type = form.cleaned_data['type']
+            ticket.save()
+            messages.success(request, "Тикет отправлен администрации.")
+            return redirect("my-tickets")
+    else:
+        form = TicketForm()
+    return render(request, "users/create_ticket.html", {"form": form})
+
+
+@login_required
+def report_comment(request, comment_id):
+    from .models import Comment, Ticket
+    from .forms import ReportCommentForm
+
+    comment = get_object_or_404(Comment, id=comment_id)
+
+    if request.method == "POST":
+        form = ReportCommentForm(request.POST)
+        if form.is_valid():
+            reason = form.cleaned_data["reason"]
+            text = f"""Жалоба на комментарий:
+
+"{comment.content}"
+
+Причина: {reason}"""
+
+            Ticket.objects.create(
+                type='report',
+                created_by=request.user,
+                reported_comment=comment,
+                comment=text,
+                status='open'
+            )
+
+            messages.success(request, "Жалоба отправлена администрации.")
+            return redirect("event-detail", event_id=comment.event.id)
+    else:
+        form = ReportCommentForm()
+
+    return render(request, "users/report_comment.html", {
+        "form": form,
+        "comment": comment
+    })
+
+
+@login_required
+def create_ticket_question(request):
+    from .forms import TicketForm
+    if request.method == "POST":
+        form = TicketForm(request.POST)
+        if form.is_valid():
+            ticket = form.save(commit=False)
+            ticket.created_by = request.user
+            ticket.type = 'question'
+            ticket.save()
+            messages.success(request, "Вопрос отправлен администрации.")
+            return redirect("my-tickets")
+    else:
+        form = TicketForm()
+    return render(request, "users/create_ticket_question.html", {"form": form})
+
+
+@login_required
+def create_ticket_report_user(request):
+    from .forms import TicketForm
+    if request.method == "POST":
+        form = TicketForm(request.POST)
+        if form.is_valid():
+            ticket = form.save(commit=False)
+            ticket.created_by = request.user
+            ticket.type = 'report'
+            ticket.save()
+            messages.success(request, "Жалоба отправлена администрации.")
+            return redirect("my-tickets")
+    else:
+        form = TicketForm()
+    return render(request, "users/create_ticket_report_user.html", {"form": form})
+
+
+from django.views.decorators.http import require_http_methods
+from django.db.models import Q
+from .models import User
+from django.contrib.auth.decorators import user_passes_test
+
+
+@user_passes_test(lambda u: u.is_admin())
+@login_required
+def admin_user_list_view(request):
+    query = request.GET.get("q", "")
+    banned = request.GET.get("banned") == "1"
+
+    users = User.objects.all()
+
+    if query:
+        if query.isdigit():
+            users = users.filter(Q(id=int(query)) | Q(username__icontains=query))
+        else:
+            users = users.filter(username__icontains=query)
+
+    if banned:
+        users = users.filter(is_active=False)
+
+    role_choices = User.ROLE_CHOICES
+    return render(request, "admin/admin_user_list.html", {
+        "users": users.order_by("id"),
+        "role_choices": role_choices
+    })
+
+
+@require_http_methods(["POST"])
+@user_passes_test(lambda u: u.is_admin())
+def admin_change_role(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    role = request.POST.get("role")
+    if role in dict(User.ROLE_CHOICES):
+        user.role = role
+        user.save()
+        messages.success(request, f"Роль обновлена: {user.username} → {role}")
+    return redirect("admin-user-list")
+
+
+@require_http_methods(["POST"])
+@user_passes_test(lambda u: u.is_admin())
+def admin_toggle_ban(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    user.is_active = not user.is_active
+    user.save()
+    status = "разбанен" if user.is_active else "забанен"
+    messages.info(request, f"Пользователь {user.username} {status}.")
+    return redirect("admin-user-list")
